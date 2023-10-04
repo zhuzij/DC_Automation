@@ -5,11 +5,12 @@ class JSONDeepDiff:
     '''
     Class to deepdiff policies dictionary (of list of dictionaries) based upon "policyid"
     '''
-    def __init__(self, folder_path):
+    def __init__(self, folder_path, selected_env_name):
         self.folder_path = folder_path
         self.folder1_path = os.path.join(folder_path, "b4")
         self.folder2_path = os.path.join(folder_path, "after")
         self.script_folder_path = os.path.dirname(os.path.abspath(__file__))
+        self.selected_env_name = selected_env_name
 
     @staticmethod
     def compare_dicts(dict1, dict2, prefix=""):
@@ -82,7 +83,7 @@ class JSONDeepDiff:
     
         # Generate the output file name for this file
     
-        output_file_name = f"{self.folder_path}/{file1_name}_{filename2_datetime}_deepdiff.txt"
+        output_file_name = f"{self.folder_path}/{self.selected_env_name}_{file1_name}_{filename2_datetime}_deepdiff.txt"
     
         with open(output_file_name, 'w') as output_file:
             # Write IDs only in the "before" file

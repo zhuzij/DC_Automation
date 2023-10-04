@@ -30,7 +30,7 @@ def main():
         fortigatepolicymanager.run()
     elif selected_task == 'deep_diff policies LIST[DICT]':
         folder_path = input("Enter the path to the folder for diff: ")
-        json_diff = JSONDeepDiff(folder_path)
+        json_diff = JSONDeepDiff(folder_path, selected_env_name)
         json_diff.run()
 
 if __name__ == "__main__":
