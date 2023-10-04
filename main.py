@@ -1,6 +1,7 @@
 import yaml
 from fortigate.fortigate_tools.fortigate_policy_manager_interface import FortigatePolicyManager
 from fortigate.fortigate_tools.fortigateobjectmanager import FortigateObjectManager
+from fortigate.fortigate_tools.jsondeepdiff_policies import JSONDeepDiff
 from common.environment_manager import Environment_Manager
 from common.task_manager import Task_Manager
 
@@ -27,8 +28,10 @@ def main():
         fortigateobjectmanager.run()
         fortigatepolicymanager = FortigatePolicyManager(fortigateobjectmanager.firewall_obj_dict, selected_env_name)
         fortigatepolicymanager.run()
-    elif selected_task == 'deep_diff':
-        fortigate_policy_manager.deep_diff()
+    elif selected_task == 'deep_diff policies LIST[DICT]':
+        folder_path = input("Enter the path to the folder for diff: ")
+        json_diff = JSONDeepDiff(folder_path)
+        json_diff.run()
 
 if __name__ == "__main__":
     main()

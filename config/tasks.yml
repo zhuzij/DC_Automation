@@ -1,5 +1,5 @@
 tasks:
   - create firewall object json file
   - deduplicate_policies
-  - deep_diff
+  - deep_diff policies LIST[DICT]
   - run_FGT_CLI

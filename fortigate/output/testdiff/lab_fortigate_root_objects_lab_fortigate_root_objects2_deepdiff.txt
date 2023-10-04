@@ -1,0 +1,8 @@
+
+Differences in lab_fortigate_root_objects2.json (ID: 3):
+- comments: 
++ comments: deepdiff4
+
+Differences in lab_fortigate_root_objects2.json (ID: 15):
+- comments:  (Copy of ssl2internal)
++ comments:  (Copy of ssl2internal) for deepdiff3
