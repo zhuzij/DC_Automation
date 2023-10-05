@@ -2,7 +2,12 @@ from fmcapi import *
 import json
 
 '''
-https://www.youtube.com/watch?v=4NIe3T-HjDw
+https://www.youtube.com/watch?v=4NIe3T-HjDwAuthorship and gratitude for contributors.
+
+This python module was created by Dax Mickelson along with LOTs of help from Ryan Malloy and Neil Patel.
+Thank you to the github community members who have also pitched in, especially Mark Sullivan and his team.  Feel
+free to send comments/suggestions/improvements.  Either by email: dmickels@cisco.com or more importantly via a pull
+request from the github repository: https://github.com/daxm/fmcapi.
 '''
 # Initialize FMC object
 fmc_host = "fmcrestapisandbox.cisco.com"  # Add 'https://' before the host name
