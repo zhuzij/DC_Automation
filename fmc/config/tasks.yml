@@ -1,0 +1,5 @@
+tasks:
+  - create firewall object json file
+  - deduplicate_policies
+  - deep_diff policies LIST[DICT]
+  - run_fmc_CLI

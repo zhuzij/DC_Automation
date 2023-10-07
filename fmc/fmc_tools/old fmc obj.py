@@ -10,9 +10,9 @@ free to send comments/suggestions/improvements.  Either by email: dmickels@cisco
 request from the github repository: https://github.com/daxm/fmcapi.
 '''
 # Initialize FMC object
-fmc_host = "fmcrestapisandbox.cisco.com"  # Add 'https://' before the host name
-username = "ZijianZhu3"
-password = "Fcrujqtc"
+fmc_host = "192.168.3.37"
+username = "admin"
+password = "Buguan372!"
 
 # Initialize empty lists to hold dictionaries for each object type
 host_list = []
@@ -183,69 +183,70 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
     # Add the Security Zone list to the all_objects dictionary
     all_objects['SecurityZones'] = security_zone_list
 
-    # # Initialize an empty list for policies
-    # policy_list = []
+    # Initialize an empty list for policies
+    policy_list = []
 
-    # # Fetch and populate Policies
-    # policies_obj = AccessPolicies(fmc=fmc)
-    # response = policies_obj.get()
-    # if 'items' in response:
-    #     for policy in response['items']:
-    #         policy_list.append({
-    #             'id': policy.get('id', 'N/A'),
-    #             'name': policy.get('name', 'N/A'),
-    #             'type': policy.get('type', 'N/A'),
-    #             'description': policy.get('description', 'N/A'),
-    #             'defaultAction': policy.get('defaultAction', 'N/A'),
-    #             'prefilterPolicySetting': policy.get('prefilterPolicySetting', 'N/A')
-    #         })
+    # Fetch and populate Policies
+    policies_obj = AccessPolicies(fmc=fmc)
+    response = policies_obj.get()
+    if 'items' in response:
+        for policy in response['items'][:3]:
+            policy_list.append({
+                'id': policy.get('id', 'N/A'),
+                'name': policy.get('name', 'N/A'),
+                'type': policy.get('type', 'N/A'),
+                'description': policy.get('description', 'N/A'),
+                'defaultAction': policy.get('defaultAction', 'N/A'),
+                'prefilterPolicySetting': policy.get('prefilterPolicySetting', 'N/A')
+            })
 
-    # # Add the policy list to the all_objects dictionary
-    # all_objects['Policies'] = policy_list
+    # Add the policy list to the all_objects dictionary
+    all_objects['Policies'] = policy_list
 
-    # # Initialize an empty list for Access Rules
-    # access_rule_list = []
+    # Initialize an empty list for Access Rules
+    access_rule_list = []
 
-    # # Fetch and populate AccessRules for each ACP:
-    # for acp in  all_objects['Policies']:
-    #     acp_name = acp['name']
-    #     access_rules_obj = AccessRules(fmc=fmc, acp_name=acp_name)
-    #     response = access_rules_obj.get()
-    #     if 'items' in response:
-    #         for rule in response['items']:
-    #             access_rule_list.append({
-    #                 'id': rule.get('id', 'N/A'),
-    #                 'name': rule.get('name', 'N/A'),
-    #                 'type': rule.get('type', 'N/A'),
-    #                 'action': rule.get('action', 'N/A'),
-    #                 'enabled': rule.get('enabled', 'N/A'),
-    #                 'sendEventsToFMC': rule.get('sendEventsToFMC', 'N/A'),
-    #                 'logFiles': rule.get('logFiles', 'N/A'),
-    #                 'logBegin': rule.get('logBegin', 'N/A'),
-    #                 'logEnd': rule.get('logEnd', 'N/A'),
-    #                 'variableSet': rule.get('variableSet', 'N/A'),
-    #                 'originalSourceNetworks': rule.get('originalSourceNetworks', 'N/A'),
-    #                 'vlanTags': rule.get('vlanTags', 'N/A'),
-    #                 'users': rule.get('users', 'N/A'),
-    #                 'sourceNetworks': rule.get('sourceNetworks', 'N/A'),
-    #                 'destinationNetworks': rule.get('destinationNetworks', 'N/A'),
-    #                 'sourcePorts': rule.get('sourcePorts', 'N/A'),
-    #                 'destinationPorts': rule.get('destinationPorts', 'N/A'),
-    #                 'ipsPolicy': rule.get('ipsPolicy', 'N/A'),
-    #                 'urls': rule.get('urls', 'N/A'),
-    #                 'sourceZones': rule.get('sourceZones', 'N/A'),
-    #                 'destinationZones': rule.get('destinationZones', 'N/A'),
-    #                 'applications': rule.get('applications', 'N/A'),
-    #                 'filePolicy': rule.get('filePolicy', 'N/A'),
-    #                 'sourceSecurityGroupTags': rule.get('sourceSecurityGroupTags', 'N/A'),
-    #                 'destinationSecurityGroupTags': rule.get('destinationSecurityGroupTags', 'N/A'),
-    #                 'enableSyslog': rule.get('enableSyslog', 'N/A'),
-    #                 'newComments': rule.get('newComments', 'N/A'),
-    #                 'commentHistoryList': rule.get('commentHistoryList', 'N/A')
-    #             })
+    # Fetch and populate AccessRules for each ACP:
+    for acp in  all_objects['Policies']:
+        acp_name = acp['name']
+        access_rules_obj = AccessRules(fmc=fmc, acp_name=acp_name)
+        response = access_rules_obj.get()
+        if 'items' in response:
+            for rule in response['items']:
+                access_rule_list.append({
+                    'id': rule.get('id', 'N/A'),
+                    'name': rule.get('name', 'N/A'),
+                    'type': rule.get('type', 'N/A'),
+                    'action': rule.get('action', 'N/A'),
+                    'enabled': rule.get('enabled', 'N/A'),
+                    'sendEventsToFMC': rule.get('sendEventsToFMC', 'N/A'),
+                    'logFiles': rule.get('logFiles', 'N/A'),
+                    'logBegin': rule.get('logBegin', 'N/A'),
+                    'logEnd': rule.get('logEnd', 'N/A'),
+                    'variableSet': rule.get('variableSet', 'N/A'),
+                    'originalSourceNetworks': rule.get('originalSourceNetworks', 'N/A'),
+                    'vlanTags': rule.get('vlanTags', 'N/A'),
+                    'users': rule.get('users', 'N/A'),
+                    'sourceNetworks': rule.get('sourceNetworks', 'N/A'),
+                    'destinationNetworks': rule.get('destinationNetworks', 'N/A'),
+                    'sourcePorts': rule.get('sourcePorts', 'N/A'),
+                    'destinationPorts': rule.get('destinationPorts', 'N/A'),
+                    'ipsPolicy': rule.get('ipsPolicy', 'N/A'),
+                    'urls': rule.get('urls', 'N/A'),
+                    'sourceZones': rule.get('sourceZones', 'N/A'),
+                    'destinationZones': rule.get('destinationZones', 'N/A'),
+                    'applications': rule.get('applications', 'N/A'),
+                    'filePolicy': rule.get('filePolicy', 'N/A'),
+                    'sourceSecurityGroupTags': rule.get('sourceSecurityGroupTags', 'N/A'),
+                    'destinationSecurityGroupTags': rule.get('destinationSecurityGroupTags', 'N/A'),
+                    'enableSyslog': rule.get('enableSyslog', 'N/A'),
+                    'newComments': rule.get('newComments', 'N/A'),
+                    'commentHistoryList': rule.get('commentHistoryList', 'N/A'),
+                    'acp_name': acp_name
+                })
 
-    # # Add the Access Rule list to the all_objects dictionary
-    # all_objects['AccessRules'] = access_rule_list
+    # Add the Access Rule list to the all_objects dictionary
+    all_objects['AccessRules'] = access_rule_list
 
     # Initialize an empty list for Policy Assignments
     policy_assignment_list = []
@@ -320,7 +321,8 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
                         'translatedPort': rule.get('translatedPort', 'N/A'),
                         'serviceProtocol': rule.get('serviceProtocol', 'N/A'),
                         'patOptions': rule.get('patOptions', 'N/A'),
-                        'description': rule.get('description', 'N/A')
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
                     })
 
     # Add the Auto NAT Rule list to the all_objects dictionary
@@ -366,7 +368,8 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
                         'patOptions': rule.get('patOptions', 'N/A'),
                         'unidirectional': rule.get('unidirectional', 'N/A'),
                         'enabled': rule.get('enabled', 'N/A'),
-                        'description': rule.get('description', 'N/A')
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
                     })
 
     # Add the Manual NAT Rule list to the all_objects dictionary
@@ -448,7 +451,7 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
 
 
 # Save to JSON
-json_file = 'output.json'  # Specify the actual path where you want to save the JSON file
+json_file = 'fmc/output/all_objects.json'  # Specify the actual path where you want to save the JSON file
 with open(json_file, 'w') as f:
     json.dump(all_objects, f, indent=4)
 
