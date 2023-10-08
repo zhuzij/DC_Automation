@@ -1,0 +1,154 @@
+{
+    "policies": [
+        {
+            "name": "S2SVPN_FTD_to_FGT",
+            "status": "disable",
+            "srcintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "FTD_Local_Subnet_Group"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "FGT_Remote_Subnet_Group"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        },
+        {
+            "name": "S2SVPN_FGT_to_FTD",
+            "status": "disable",
+            "srcintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "Internal"
+                },
+                {
+                    "name": "DMZ"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "FGT_Remote_Subnet_Group"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "FTD_Local_Subnet_Group"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        },
+        {
+            "name": "LabNet_to_FTD_Hosts",
+            "status": "disable",
+            "srcintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "LabNet"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "Inside_Host"
+                },
+                {
+                    "name": "DMZ_Host"
+                }
+            ],
+            "service": [
+                {
+                    "name": "Ping"
+                },
+                {
+                    "name": "FTP"
+                },
+                {
+                    "name": "SSH"
+                },
+                {
+                    "name": "HTTP"
+                },
+                {
+                    "name": "HTTPS"
+                }
+            ]
+        },
+        {
+            "name": "Internet_Access",
+            "status": "disable",
+            "srcintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "DMZNet"
+                },
+                {
+                    "name": "InsideNet"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "all"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        }
+    ]
+}

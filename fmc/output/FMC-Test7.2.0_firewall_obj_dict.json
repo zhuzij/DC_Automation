@@ -58,6 +58,134 @@
         }
     ],
     "Ranges": [],
+    "Networks": [
+        {
+            "id": "cb7116e8-66a6-480b-8f9b-295191a0940a",
+            "name": "any-ipv4",
+            "type": "Network",
+            "value": "0.0.0.0/0",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654708667",
+            "name": "DMZNet",
+            "type": "Network",
+            "value": "10.16.12.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654711838",
+            "name": "FGT_Remote_DMZ_Subnet",
+            "type": "Network",
+            "value": "10.16.172.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654711820",
+            "name": "FGT_Remote_Inside_Subnet",
+            "type": "Network",
+            "value": "10.16.171.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654712023",
+            "name": "FGT_VPN_Subnet",
+            "type": "Network",
+            "value": "10.16.170.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654712041",
+            "name": "FTD_VPN_Subnet",
+            "type": "Network",
+            "value": "10.16.200.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654708644",
+            "name": "InsideNet",
+            "type": "Network",
+            "value": "10.16.11.0/24",
+            "description": " "
+        },
+        {
+            "id": "86caab8a-9bdd-420d-858b-5690fde8ce58",
+            "name": "IPv4-Benchmark-Tests",
+            "type": "Network",
+            "value": "198.18.0.0/15",
+            "description": " "
+        },
+        {
+            "id": "f0ce41ae-6ee9-4e00-8762-da9370c4fee5",
+            "name": "IPv4-Link-Local",
+            "type": "Network",
+            "value": "169.254.0.0/16",
+            "description": " "
+        },
+        {
+            "id": "5622db1c-5cd5-4199-a4c8-d8f86dec3bd4",
+            "name": "IPv4-Multicast",
+            "type": "Network",
+            "value": "224.0.0.0/4",
+            "description": " "
+        },
+        {
+            "id": "95916354-5aa1-4057-8eea-b42a5a207abc",
+            "name": "IPv4-Private-10.0.0.0-8",
+            "type": "Network",
+            "value": "10.0.0.0/8",
+            "description": " "
+        },
+        {
+            "id": "b7a78a7d-20c5-47b2-b02f-86b4360112ac",
+            "name": "IPv4-Private-172.16.0.0-12",
+            "type": "Network",
+            "value": "172.16.0.0/12",
+            "description": " "
+        },
+        {
+            "id": "1dcefdd8-07f7-438a-9221-97d63710614e",
+            "name": "IPv4-Private-192.168.0.0-16",
+            "type": "Network",
+            "value": "192.168.0.0/16",
+            "description": " "
+        },
+        {
+            "id": "1047b91f-db3a-45b8-9c10-f48ed3f0c3d6",
+            "name": "IPv6-IPv4-Mapped",
+            "type": "Network",
+            "value": "::ffff:0.0.0.0/96",
+            "description": " "
+        },
+        {
+            "id": "192c14f2-39d9-409d-81e9-357793bdf1ec",
+            "name": "IPv6-Link-Local",
+            "type": "Network",
+            "value": "fe80::/10",
+            "description": " "
+        },
+        {
+            "id": "0434674f-87f8-4e17-810e-97100407858b",
+            "name": "IPv6-Private-Unique-Local-Addresses",
+            "type": "Network",
+            "value": "fc00::/7",
+            "description": " "
+        },
+        {
+            "id": "04ea3f1f-f5a9-4eca-b051-487ebeb4c97f",
+            "name": "IPv6-to-IPv4-Relay-Anycast",
+            "type": "Network",
+            "value": "192.88.99.0/24",
+            "description": " "
+        },
+        {
+            "id": "00000000-0000-0ed3-0000-038654712162",
+            "name": "LabNet",
+            "type": "Network",
+            "value": "192.168.3.0/24",
+            "description": " "
+        }
+    ],
     "AddressGroups": [
         {
             "id": "69fa2a3a-4487-4e3c-816f-4098f684826e",
@@ -83,13 +211,13 @@
             "objects": [
                 {
                     "type": "Network",
-                    "id": "00000000-0000-0ed3-0000-038654711820",
-                    "name": "FGT_Remote_Inside_Subnet"
+                    "name": "FGT_Remote_Inside_Subnet",
+                    "id": "00000000-0000-0ed3-0000-038654711820"
                 },
                 {
                     "type": "Network",
-                    "id": "00000000-0000-0ed3-0000-038654711838",
-                    "name": "FGT_Remote_DMZ_Subnet"
+                    "name": "FGT_Remote_DMZ_Subnet",
+                    "id": "00000000-0000-0ed3-0000-038654711838"
                 }
             ],
             "literals": "N/A",
@@ -102,13 +230,13 @@
             "objects": [
                 {
                     "type": "Network",
-                    "id": "00000000-0000-0ed3-0000-038654708667",
-                    "name": "DMZNet"
+                    "name": "DMZNet",
+                    "id": "00000000-0000-0ed3-0000-038654708667"
                 },
                 {
                     "type": "Network",
-                    "id": "00000000-0000-0ed3-0000-038654708644",
-                    "name": "InsideNet"
+                    "name": "InsideNet",
+                    "id": "00000000-0000-0ed3-0000-038654708644"
                 }
             ],
             "literals": "N/A",
@@ -140,242 +268,242 @@
         {
             "id": "1834d812-38bb-11e2-86aa-62f0c593a59a",
             "name": "AOL",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "5190",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834e5f0-38bb-11e2-86aa-62f0c593a59a",
             "name": "Bittorrent",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "6881-6889",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834e712-38bb-11e2-86aa-62f0c593a59a",
             "name": "DNS_over_TCP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "53",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834e8ca-38bb-11e2-86aa-62f0c593a59a",
             "name": "DNS_over_UDP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "53",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834c674-38bb-11e2-86aa-62f0c593a59a",
             "name": "FTP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "21",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "18312adc-38bb-11e2-86aa-62f0c593a59a",
             "name": "HTTP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "80",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834bd00-38bb-11e2-86aa-62f0c593a59a",
             "name": "HTTPS",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "443",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834c37c-38bb-11e2-86aa-62f0c593a59a",
             "name": "IMAP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "143",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834d01a-38bb-11e2-86aa-62f0c593a59a",
             "name": "LDAP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "389",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834c9c6-38bb-11e2-86aa-62f0c593a59a",
             "name": "NFSD-TCP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "2049",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834caac-38bb-11e2-86aa-62f0c593a59a",
             "name": "NFSD-UDP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "2049",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834cb92-38bb-11e2-86aa-62f0c593a59a",
             "name": "NTP-TCP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "123",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834cc96-38bb-11e2-86aa-62f0c593a59a",
             "name": "NTP-UDP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "123",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834c462-38bb-11e2-86aa-62f0c593a59a",
             "name": "POP-2",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "109",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834c548-38bb-11e2-86aa-62f0c593a59a",
             "name": "POP-3",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "110",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834ce94-38bb-11e2-86aa-62f0c593a59a",
             "name": "RADIUS",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "1645",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834d114-38bb-11e2-86aa-62f0c593a59a",
             "name": "RIP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "520",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834d204-38bb-11e2-86aa-62f0c593a59a",
             "name": "SIP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "5060",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834bf44-38bb-11e2-86aa-62f0c593a59a",
             "name": "SMTP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "25",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834c07a-38bb-11e2-86aa-62f0c593a59a",
             "name": "SMTPS",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "465",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834c264-38bb-11e2-86aa-62f0c593a59a",
             "name": "SNMP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "161",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834c890-38bb-11e2-86aa-62f0c593a59a",
             "name": "SSH",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "22",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834d6e6-38bb-11e2-86aa-62f0c593a59a",
             "name": "SYSLOG",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "514",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834e50a-38bb-11e2-86aa-62f0c593a59a",
             "name": "TCP_high_ports",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "1021-65535",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "28e058e4-43b0-11e2-9bcd-7c2f9ed9bbee",
             "name": "TELNET",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "23",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834d5e2-38bb-11e2-86aa-62f0c593a59a",
             "name": "TFTP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "69",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         },
         {
             "id": "1834da1a-38bb-11e2-86aa-62f0c593a59a",
             "name": "Yahoo_Messenger_Messages",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "5050",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834db96-38bb-11e2-86aa-62f0c593a59a",
             "name": "YahooMessenger_Voice_Chat_TCP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "5000-5001",
-            "protocol": "TCP",
-            "type": "ProtocolPortObject"
+            "protocol": "TCP"
         },
         {
             "id": "1834dc86-38bb-11e2-86aa-62f0c593a59a",
             "name": "YahooMessenger_Voice_Chat_UDP",
+            "type": "ProtocolPortObject",
             "description": " ",
             "port": "5000-5010",
-            "protocol": "UDP",
-            "type": "ProtocolPortObject"
+            "protocol": "UDP"
         }
     ],
     "ICMPv4Objects": [
         {
             "id": "00000000-0000-0ed3-0000-038654712537",
             "name": "Ping",
-            "description": " ",
             "type": "ICMPV4Object",
+            "description": " ",
             "overrideTargetId": "N/A",
             "code": "N/A",
             "icmpType": "Any",
@@ -18909,20 +19037,6 @@
     "InterfaceGroups": [],
     "SecurityZones": [
         {
-            "id": "f14f84c6-e464-11ec-bc1e-9e0016c12ef2",
-            "name": "DMZ",
-            "type": "SecurityZone",
-            "description": "N/A",
-            "interfaceMode": "ROUTED",
-            "interfaces": [
-                {
-                    "type": "PhysicalInterface",
-                    "id": "00000000-0000-0ed3-0000-004294968290",
-                    "name": "GigabitEthernet0/2"
-                }
-            ]
-        },
-        {
             "id": "e34f7174-e464-11ec-a1b2-b089f8b6c60b",
             "name": "Internal",
             "type": "SecurityZone",
@@ -18933,6 +19047,20 @@
                     "type": "PhysicalInterface",
                     "id": "00000000-0000-0ed3-0000-004294968289",
                     "name": "GigabitEthernet0/1"
+                }
+            ]
+        },
+        {
+            "id": "f14f84c6-e464-11ec-bc1e-9e0016c12ef2",
+            "name": "DMZ",
+            "type": "SecurityZone",
+            "description": "N/A",
+            "interfaceMode": "ROUTED",
+            "interfaces": [
+                {
+                    "type": "PhysicalInterface",
+                    "id": "00000000-0000-0ed3-0000-004294968290",
+                    "name": "GigabitEthernet0/2"
                 }
             ]
         },
@@ -18959,17 +19087,17 @@
             "description": "Initial ACP",
             "defaultAction": {
                 "action": "BLOCK",
+                "type": "AccessPolicyDefaultAction",
                 "logBegin": false,
                 "logEnd": false,
                 "enableSyslog": false,
                 "sendEventsToFMC": false,
-                "type": "AccessPolicyDefaultAction",
                 "id": "00000000-0000-0ed3-0000-000268434432"
             },
             "prefilterPolicySetting": {
-                "type": "PrefilterPolicy",
+                "name": "Default Prefilter Policy",
                 "id": "4897c8f4-e211-4661-b0a4-25b0826cded9",
-                "name": "Default Prefilter Policy"
+                "type": "PrefilterPolicy"
             }
         }
     ],
@@ -18978,6 +19106,7 @@
             "id": "00000000-0000-0ed3-0000-000268437506",
             "name": "S2SVPN_FTD_to_FGT",
             "type": "AccessRule",
+            "acp_name": "Initial_ACP",
             "action": "ALLOW",
             "enabled": true,
             "sendEventsToFMC": true,
@@ -18989,16 +19118,16 @@
                 "id": "76fa83ea-c972-11e2-8be8-8e45bb1343c0",
                 "type": "VariableSet"
             },
-            "originalSourceNetworks": "N/A",
+            "originalSourceNetworks": "any",
             "vlanTags": {},
-            "users": "N/A",
+            "users": "any",
             "sourceNetworks": {
                 "objects": [
                     {
                         "type": "NetworkGroup",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654711856",
-                        "name": "FTD_Local_Subnet_Group"
+                        "name": "FTD_Local_Subnet_Group",
+                        "id": "00000000-0000-0ed3-0000-038654711856"
                     }
                 ]
             },
@@ -19007,15 +19136,20 @@
                     {
                         "type": "NetworkGroup",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654711874",
-                        "name": "FGT_Remote_Subnet_Group"
+                        "name": "FGT_Remote_Subnet_Group",
+                        "id": "00000000-0000-0ed3-0000-038654711874"
                     }
                 ]
             },
-            "sourcePorts": "N/A",
-            "destinationPorts": "N/A",
-            "ipsPolicy": "N/A",
-            "urls": "N/A",
+            "sourcePorts": "any",
+            "destinationPorts": "any",
+            "ipsPolicy": {
+                "name": "Balanced Security and Connectivity",
+                "id": "6c66b83c-bc23-55b6-879d-c4d847443503",
+                "type": "IntrusionPolicy",
+                "inspectionMode": "DETECTION"
+            },
+            "urls": "any",
             "sourceZones": {
                 "objects": [
                     {
@@ -19039,19 +19173,19 @@
                     }
                 ]
             },
-            "applications": "N/A",
-            "filePolicy": "N/A",
-            "sourceSecurityGroupTags": "N/A",
-            "destinationSecurityGroupTags": "N/A",
+            "applications": "any",
+            "filePolicy": "any",
+            "sourceSecurityGroupTags": "any",
+            "destinationSecurityGroupTags": "any",
             "enableSyslog": false,
-            "newComments": "N/A",
-            "commentHistoryList": "N/A",
-            "acp_name": "Initial_ACP"
+            "newComments": "any",
+            "commentHistoryList": "any"
         },
         {
             "id": "00000000-0000-0ed3-0000-000268437507",
             "name": "S2SVPN_FGT_to_FTD",
             "type": "AccessRule",
+            "acp_name": "Initial_ACP",
             "action": "ALLOW",
             "enabled": true,
             "sendEventsToFMC": true,
@@ -19063,16 +19197,16 @@
                 "id": "76fa83ea-c972-11e2-8be8-8e45bb1343c0",
                 "type": "VariableSet"
             },
-            "originalSourceNetworks": "N/A",
+            "originalSourceNetworks": "any",
             "vlanTags": {},
-            "users": "N/A",
+            "users": "any",
             "sourceNetworks": {
                 "objects": [
                     {
                         "type": "NetworkGroup",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654711874",
-                        "name": "FGT_Remote_Subnet_Group"
+                        "name": "FGT_Remote_Subnet_Group",
+                        "id": "00000000-0000-0ed3-0000-038654711874"
                     }
                 ]
             },
@@ -19081,15 +19215,20 @@
                     {
                         "type": "NetworkGroup",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654711856",
-                        "name": "FTD_Local_Subnet_Group"
+                        "name": "FTD_Local_Subnet_Group",
+                        "id": "00000000-0000-0ed3-0000-038654711856"
                     }
                 ]
             },
-            "sourcePorts": "N/A",
-            "destinationPorts": "N/A",
-            "ipsPolicy": "N/A",
-            "urls": "N/A",
+            "sourcePorts": "any",
+            "destinationPorts": "any",
+            "ipsPolicy": {
+                "name": "Balanced Security and Connectivity",
+                "id": "6c66b83c-bc23-55b6-879d-c4d847443503",
+                "type": "IntrusionPolicy",
+                "inspectionMode": "DETECTION"
+            },
+            "urls": "any",
             "sourceZones": {
                 "objects": [
                     {
@@ -19113,19 +19252,19 @@
                     }
                 ]
             },
-            "applications": "N/A",
-            "filePolicy": "N/A",
-            "sourceSecurityGroupTags": "N/A",
-            "destinationSecurityGroupTags": "N/A",
+            "applications": "any",
+            "filePolicy": "any",
+            "sourceSecurityGroupTags": "any",
+            "destinationSecurityGroupTags": "any",
             "enableSyslog": false,
-            "newComments": "N/A",
-            "commentHistoryList": "N/A",
-            "acp_name": "Initial_ACP"
+            "newComments": "any",
+            "commentHistoryList": "any"
         },
         {
             "id": "00000000-0000-0ed3-0000-000268437505",
             "name": "LabNet_to_FTD_Hosts",
             "type": "AccessRule",
+            "acp_name": "Initial_ACP",
             "action": "ALLOW",
             "enabled": true,
             "sendEventsToFMC": true,
@@ -19137,16 +19276,16 @@
                 "id": "76fa83ea-c972-11e2-8be8-8e45bb1343c0",
                 "type": "VariableSet"
             },
-            "originalSourceNetworks": "N/A",
+            "originalSourceNetworks": "any",
             "vlanTags": {},
-            "users": "N/A",
+            "users": "any",
             "sourceNetworks": {
                 "objects": [
                     {
                         "type": "Network",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654712162",
-                        "name": "LabNet"
+                        "name": "LabNet",
+                        "id": "00000000-0000-0ed3-0000-038654712162"
                     }
                 ]
             },
@@ -19155,58 +19294,63 @@
                     {
                         "type": "Host",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654711784",
-                        "name": "Inside_Host"
+                        "name": "Inside_Host",
+                        "id": "00000000-0000-0ed3-0000-038654711784"
                     },
                     {
                         "type": "Host",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654713166",
-                        "name": "DMZ_Host"
+                        "name": "DMZ_Host",
+                        "id": "00000000-0000-0ed3-0000-038654713166"
                     }
                 ]
             },
-            "sourcePorts": "N/A",
+            "sourcePorts": "any",
             "destinationPorts": {
                 "objects": [
                     {
                         "type": "ICMPV4Object",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654712537",
-                        "name": "Ping"
+                        "name": "Ping",
+                        "id": "00000000-0000-0ed3-0000-038654712537"
                     },
                     {
                         "type": "ProtocolPortObject",
                         "protocol": "TCP",
                         "overridable": false,
-                        "id": "1834c674-38bb-11e2-86aa-62f0c593a59a",
-                        "name": "FTP"
+                        "name": "FTP",
+                        "id": "1834c674-38bb-11e2-86aa-62f0c593a59a"
                     },
                     {
                         "type": "ProtocolPortObject",
                         "protocol": "TCP",
                         "overridable": false,
-                        "id": "1834c890-38bb-11e2-86aa-62f0c593a59a",
-                        "name": "SSH"
+                        "name": "SSH",
+                        "id": "1834c890-38bb-11e2-86aa-62f0c593a59a"
                     },
                     {
                         "type": "ProtocolPortObject",
                         "protocol": "TCP",
                         "overridable": false,
-                        "id": "18312adc-38bb-11e2-86aa-62f0c593a59a",
-                        "name": "HTTP"
+                        "name": "HTTP",
+                        "id": "18312adc-38bb-11e2-86aa-62f0c593a59a"
                     },
                     {
                         "type": "ProtocolPortObject",
                         "protocol": "TCP",
                         "overridable": false,
-                        "id": "1834bd00-38bb-11e2-86aa-62f0c593a59a",
-                        "name": "HTTPS"
+                        "name": "HTTPS",
+                        "id": "1834bd00-38bb-11e2-86aa-62f0c593a59a"
                     }
                 ]
             },
-            "ipsPolicy": "N/A",
-            "urls": "N/A",
+            "ipsPolicy": {
+                "name": "Balanced Security and Connectivity",
+                "id": "6c66b83c-bc23-55b6-879d-c4d847443503",
+                "type": "IntrusionPolicy",
+                "inspectionMode": "DETECTION"
+            },
+            "urls": "any",
             "sourceZones": {
                 "objects": [
                     {
@@ -19230,19 +19374,19 @@
                     }
                 ]
             },
-            "applications": "N/A",
-            "filePolicy": "N/A",
-            "sourceSecurityGroupTags": "N/A",
-            "destinationSecurityGroupTags": "N/A",
+            "applications": "any",
+            "filePolicy": "any",
+            "sourceSecurityGroupTags": "any",
+            "destinationSecurityGroupTags": "any",
             "enableSyslog": false,
-            "newComments": "N/A",
-            "commentHistoryList": "N/A",
-            "acp_name": "Initial_ACP"
+            "newComments": "any",
+            "commentHistoryList": "any"
         },
         {
             "id": "00000000-0000-0ed3-0000-000268437504",
             "name": "Internet_Access",
             "type": "AccessRule",
+            "acp_name": "Initial_ACP",
             "action": "ALLOW",
             "enabled": true,
             "sendEventsToFMC": true,
@@ -19254,30 +19398,35 @@
                 "id": "76fa83ea-c972-11e2-8be8-8e45bb1343c0",
                 "type": "VariableSet"
             },
-            "originalSourceNetworks": "N/A",
+            "originalSourceNetworks": "any",
             "vlanTags": {},
-            "users": "N/A",
+            "users": "any",
             "sourceNetworks": {
                 "objects": [
                     {
                         "type": "Network",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654708667",
-                        "name": "DMZNet"
+                        "name": "DMZNet",
+                        "id": "00000000-0000-0ed3-0000-038654708667"
                     },
                     {
                         "type": "Network",
                         "overridable": false,
-                        "id": "00000000-0000-0ed3-0000-038654708644",
-                        "name": "InsideNet"
+                        "name": "InsideNet",
+                        "id": "00000000-0000-0ed3-0000-038654708644"
                     }
                 ]
             },
-            "destinationNetworks": "N/A",
-            "sourcePorts": "N/A",
-            "destinationPorts": "N/A",
-            "ipsPolicy": "N/A",
-            "urls": "N/A",
+            "destinationNetworks": "any",
+            "sourcePorts": "any",
+            "destinationPorts": "any",
+            "ipsPolicy": {
+                "name": "Balanced Security and Connectivity",
+                "id": "6c66b83c-bc23-55b6-879d-c4d847443503",
+                "type": "IntrusionPolicy",
+                "inspectionMode": "DETECTION"
+            },
+            "urls": "any",
             "sourceZones": {
                 "objects": [
                     {
@@ -19301,14 +19450,13 @@
                     }
                 ]
             },
-            "applications": "N/A",
-            "filePolicy": "N/A",
-            "sourceSecurityGroupTags": "N/A",
-            "destinationSecurityGroupTags": "N/A",
+            "applications": "any",
+            "filePolicy": "any",
+            "sourceSecurityGroupTags": "any",
+            "destinationSecurityGroupTags": "any",
             "enableSyslog": false,
-            "newComments": "N/A",
-            "commentHistoryList": "N/A",
-            "acp_name": "Initial_ACP"
+            "newComments": "any",
+            "commentHistoryList": "any"
         }
     ],
     "PolicyAssignments": [
@@ -19326,8 +19474,8 @@
             ],
             "policy": {
                 "type": "FTDNatPolicy",
-                "id": "00000000-0000-0ed3-0000-038654707601",
-                "name": "Initial_NAT"
+                "name": "Initial_NAT",
+                "id": "00000000-0000-0ed3-0000-038654707601"
             }
         },
         {
@@ -19344,9 +19492,9 @@
             ],
             "policy": {
                 "type": "AccessPolicy",
-                "description": "Initial ACP",
+                "name": "Initial_ACP",
                 "id": "00000000-0000-0ed3-0000-004294968093",
-                "name": "Initial_ACP"
+                "description": "Initial ACP"
             }
         },
         {
@@ -19375,8 +19523,8 @@
             ],
             "policy": {
                 "type": "HealthPolicy",
-                "id": "1b0bb894-e45f-11ec-b98e-ffa96deb956b",
-                "name": "Initial_Health_Policy 2022-06-04 23:36:06"
+                "name": "Initial_Health_Policy 2022-06-04 23:36:06",
+                "id": "1b0bb894-e45f-11ec-b98e-ffa96deb956b"
             }
         }
     ],
@@ -19396,26 +19544,26 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708644",
-                "name": "InsideNet"
+                "name": "InsideNet",
+                "id": "00000000-0000-0ed3-0000-038654708644"
             },
             "originalDestination": {
                 "type": "NetworkGroup",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711874",
-                "name": "FGT_Remote_Subnet_Group"
+                "name": "FGT_Remote_Subnet_Group",
+                "id": "00000000-0000-0ed3-0000-038654711874"
             },
             "translatedSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708644",
-                "name": "InsideNet"
+                "name": "InsideNet",
+                "id": "00000000-0000-0ed3-0000-038654708644"
             },
             "translatedDestination": {
                 "type": "NetworkGroup",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711874",
-                "name": "FGT_Remote_Subnet_Group"
+                "name": "FGT_Remote_Subnet_Group",
+                "id": "00000000-0000-0ed3-0000-038654711874"
             },
             "interfaceInTranslatedSource": false,
             "interfaceInOriginalDestination": false,
@@ -19453,26 +19601,26 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708667",
-                "name": "DMZNet"
+                "name": "DMZNet",
+                "id": "00000000-0000-0ed3-0000-038654708667"
             },
             "originalDestination": {
                 "type": "NetworkGroup",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711874",
-                "name": "FGT_Remote_Subnet_Group"
+                "name": "FGT_Remote_Subnet_Group",
+                "id": "00000000-0000-0ed3-0000-038654711874"
             },
             "translatedSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708667",
-                "name": "DMZNet"
+                "name": "DMZNet",
+                "id": "00000000-0000-0ed3-0000-038654708667"
             },
             "translatedDestination": {
                 "type": "NetworkGroup",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711874",
-                "name": "FGT_Remote_Subnet_Group"
+                "name": "FGT_Remote_Subnet_Group",
+                "id": "00000000-0000-0ed3-0000-038654711874"
             },
             "interfaceInTranslatedSource": false,
             "interfaceInOriginalDestination": false,
@@ -19510,26 +19658,26 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654712162",
-                "name": "LabNet"
+                "name": "LabNet",
+                "id": "00000000-0000-0ed3-0000-038654712162"
             },
             "originalDestination": {
                 "type": "Host",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711802",
-                "name": "Inside_Host_NAT"
+                "name": "Inside_Host_NAT",
+                "id": "00000000-0000-0ed3-0000-038654711802"
             },
             "translatedSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654712162",
-                "name": "LabNet"
+                "name": "LabNet",
+                "id": "00000000-0000-0ed3-0000-038654712162"
             },
             "translatedDestination": {
                 "type": "Host",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654711784",
-                "name": "Inside_Host"
+                "name": "Inside_Host",
+                "id": "00000000-0000-0ed3-0000-038654711784"
             },
             "interfaceInTranslatedSource": false,
             "interfaceInOriginalDestination": false,
@@ -19567,26 +19715,26 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654712162",
-                "name": "LabNet"
+                "name": "LabNet",
+                "id": "00000000-0000-0ed3-0000-038654712162"
             },
             "originalDestination": {
                 "type": "Host",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654713184",
-                "name": "DMZ_Host_NAT"
+                "name": "DMZ_Host_NAT",
+                "id": "00000000-0000-0ed3-0000-038654713184"
             },
             "translatedSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654712162",
-                "name": "LabNet"
+                "name": "LabNet",
+                "id": "00000000-0000-0ed3-0000-038654712162"
             },
             "translatedDestination": {
                 "type": "Host",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654713166",
-                "name": "DMZ_Host"
+                "name": "DMZ_Host",
+                "id": "00000000-0000-0ed3-0000-038654713166"
             },
             "interfaceInTranslatedSource": false,
             "interfaceInOriginalDestination": false,
@@ -19624,8 +19772,8 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708644",
-                "name": "InsideNet"
+                "name": "InsideNet",
+                "id": "00000000-0000-0ed3-0000-038654708644"
             },
             "originalDestination": "N/A",
             "translatedSource": "N/A",
@@ -19659,8 +19807,8 @@
                 "patPoolAddress": {
                     "type": "Host",
                     "overridable": false,
-                    "id": "00000000-0000-0ed3-0000-038654707815",
-                    "name": "PAT_Pool1"
+                    "name": "PAT_Pool1",
+                    "id": "00000000-0000-0ed3-0000-038654707815"
                 },
                 "interfacePat": false,
                 "includeReserve": false,
@@ -19679,8 +19827,8 @@
             "originalSource": {
                 "type": "Network",
                 "overridable": false,
-                "id": "00000000-0000-0ed3-0000-038654708667",
-                "name": "DMZNet"
+                "name": "DMZNet",
+                "id": "00000000-0000-0ed3-0000-038654708667"
             },
             "originalDestination": "N/A",
             "translatedSource": "N/A",
@@ -19714,8 +19862,8 @@
                 "patPoolAddress": {
                     "type": "Host",
                     "overridable": false,
-                    "id": "00000000-0000-0ed3-0000-038654708187",
-                    "name": "PAT_Pool2"
+                    "name": "PAT_Pool2",
+                    "id": "00000000-0000-0ed3-0000-038654708187"
                 },
                 "interfacePat": false,
                 "includeReserve": false,
@@ -19732,32 +19880,38 @@
         {
             "id": "00000000-0000-0ed3-0000-038654712208",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         },
         {
             "id": "00000000-0000-0ed3-0000-038654712209",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         },
         {
             "id": "00000000-0000-0ed3-0000-038654712185",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         },
         {
             "id": "00000000-0000-0ed3-0000-038654713207",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         },
         {
             "id": "00000000-0000-0ed3-0000-038654707731",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         },
         {
             "id": "00000000-0000-0ed3-0000-038654707732",
             "name": "N/A",
-            "type": "FTDManualNatRule"
+            "type": "FTDManualNatRule",
+            "natpolicy_name": "Initial_NAT"
         }
     ],
     "DeviceRecords": [
@@ -19800,6 +19954,34 @@
                 "id": "00000000-0000-0ed3-0000-004294968093",
                 "type": "AccessPolicy"
             }
+        }
+    ],
+    "IPv4StaticRoutes": [
+        {
+            "id": "00000000-0000-0ed3-0000-038654711093",
+            "name": "N/A",
+            "type": "IPv4StaticRoute",
+            "interfaceName": "Outside",
+            "selectedNetworks": [
+                {
+                    "type": "Network",
+                    "overridable": false,
+                    "name": "any-ipv4",
+                    "id": "cb7116e8-66a6-480b-8f9b-295191a0940a"
+                }
+            ],
+            "gateway": {
+                "object": {
+                    "type": "Host",
+                    "overridable": false,
+                    "name": "Outside_Default_GW",
+                    "id": "00000000-0000-0ed3-0000-004294968690"
+                }
+            },
+            "routeTracking": "N/A",
+            "metricValue": 1,
+            "isTunneled": false,
+            "device_name": "FTD-Test"
         }
     ]
 }

@@ -3,3 +3,4 @@ tasks:
   - deduplicate_policies
   - deep_diff policies LIST[DICT]
   - run_fmc_CLI
+  - convert object json to fortigate format
