@@ -18,7 +18,7 @@ class FWObjectsJsonParser():
             # get rule name
             name = rule['name']
             # get status
-            if rule['enabled'] == 'true':
+            if rule['enabled'] == True:
                 status = 'enable'
             else:
                 status = 'disable'

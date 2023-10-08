@@ -2,7 +2,7 @@
     "policies": [
         {
             "name": "S2SVPN_FTD_to_FGT",
-            "status": "disable",
+            "status": "enable",
             "srcintf": [
                 {
                     "name": "DMZ"
@@ -35,7 +35,7 @@
         },
         {
             "name": "S2SVPN_FGT_to_FTD",
-            "status": "disable",
+            "status": "enable",
             "srcintf": [
                 {
                     "name": "External"
@@ -68,7 +68,7 @@
         },
         {
             "name": "LabNet_to_FTD_Hosts",
-            "status": "disable",
+            "status": "enable",
             "srcintf": [
                 {
                     "name": "External"
@@ -116,7 +116,7 @@
         },
         {
             "name": "Internet_Access",
-            "status": "disable",
+            "status": "enable",
             "srcintf": [
                 {
                     "name": "DMZ"
