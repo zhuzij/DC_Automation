@@ -91,8 +91,53 @@ class FWObjectsJsonParser():
                 }
             self.output_fwpol_list.append(self.output_fwpol_dict)
         
+        # parsing host address
+        self.output_fwaddr_list = []
+        self.output_fwaddr_dict = {}
+        for addr in self.fw_obj_dict["Addresses"]:
+            # get name
+            addrname = addr['name']
+            # get type
+            if addr['type'] == 'Host':
+                type = "ipmask"
+            else:
+                pass
+            # get subnet
+            subnet = addr['value']
+            # get comment
+            comment = addr['description']
+            self.output_fwaddr_dict = {
+                'name': addrname,
+                "type": type,
+                "subnet": subnet,
+                "comment": comment
+                }
+            self.output_fwaddr_list.append(self.output_fwaddr_dict)
+        # parsing network address
+
+        self.output_fwaddr_dict = {}
+        for addr in self.fw_obj_dict["Networks"]:
+            # get name
+            addrname = addr['name']
+            # get type
+            if addr['type'] == "Network":
+                type = "ipmask"
+            else:
+                pass
+            # get subnet
+            subnet = addr['value']
+            # get comment
+            comment = addr['description']
+            self.output_fwaddr_dict = {
+                'name': addrname,
+                "type": type,
+                "subnet": subnet,
+                "comment": comment
+                }
+            self.output_fwaddr_list.append(self.output_fwaddr_dict)
         self.output_fwobj_dict = {
-            'policies': self.output_fwpol_list
+            'policies': self.output_fwpol_list,
+            'addresses': self.output_fwaddr_list
             }
         
         # Save to JSON
