@@ -1,0 +1,37 @@
+"policies": [
+        {
+            "status": "disable",
+            "name": "SSLVPN_David_Cai",
+            "srcintf": [
+                {
+                    "name": "ssl.root",
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "internal",
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "SSLVPN_TUNNEL_ADDR1",
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "PAN-David-Mgmt",
+                },
+                {
+                    "name": "Win7-DavidC",
+                }
+            ],
+            "service": [
+                {
+                    "name": "HTTPS",
+                }
+            ],
+		}
+	]
+	
+"action": "accept",
