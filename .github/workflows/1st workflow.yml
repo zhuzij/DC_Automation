@@ -10,7 +10,6 @@ jobs:
         run: |
           uname -a
           ifconfig -a
-          ipaddr
           whoami
       - name: print bye
         run: echo "Done! Bye"
