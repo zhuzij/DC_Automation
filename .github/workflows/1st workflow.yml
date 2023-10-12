@@ -4,7 +4,10 @@ jobs:
   first_job:
     runs-on: Ubuntu-latest
     steps:
-      - name: print gretting
+      - name: print greeting
         run: echo "Hello World!"
+      - name: get network config
+        run: ifconfig -a
       - name: print bye
         run: echo "Done! Bye"
+        
