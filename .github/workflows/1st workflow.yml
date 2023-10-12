@@ -6,8 +6,12 @@ jobs:
     steps:
       - name: print greeting
         run: echo "Hello World!"
-      - name: get network config
-        run: ifconfig -a
+      - name: test run multiple commands
+        run: |
+          uname -a
+          ifconfig -a
+          ipaddr
+          whoami
       - name: print bye
         run: echo "Done! Bye"
         
