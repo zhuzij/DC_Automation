@@ -1,0 +1,16 @@
+name: first workflow
+on: workflow_dispatch
+jobs:
+  first_job:
+    runs-on: Ubuntu-latest
+    steps:
+      - name: print greeting
+        run: echo "Hello World!"
+      - name: test run multiple commands
+        run: |
+          uname -a
+          ifconfig -a
+          whoami
+      - name: print bye
+        run: echo "Done! Bye"
+        
