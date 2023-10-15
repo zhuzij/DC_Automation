@@ -5,6 +5,7 @@
 #     Author-Joe Zhu
 #*****************************************************
 #  C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigateobjectmanager.py
+# based upon https://github.com/vladimirs-git/fortigate-api/tree/main
 import json
 from fortigate_api import FortigateAPI
 

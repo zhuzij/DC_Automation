@@ -10,9 +10,15 @@ free to send comments/suggestions/improvements.  Either by email: dmickels@cisco
 request from the github repository: https://github.com/daxm/fmcapi.
 '''
 # Initialize FMC object
+<<<<<<< HEAD:fmc/fmc_tools/test.py
 fmc_host = "fmcrestapisandbox.cisco.com"  # Add 'https://' before the host name
 username = "ZijianZhu3"
 password = "uCdLzGMt"
+=======
+fmc_host = "192.168.3.37"
+username = "admin"
+password = "Buguan372!"
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
 
 # Initialize empty lists to hold dictionaries for each object type
 host_list = []
@@ -190,7 +196,11 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
     policies_obj = AccessPolicies(fmc=fmc)
     response = policies_obj.get()
     if 'items' in response:
+<<<<<<< HEAD:fmc/fmc_tools/test.py
         for policy in response['items']:
+=======
+        for policy in response['items'][:3]:
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
             policy_list.append({
                 'id': policy.get('id', 'N/A'),
                 'name': policy.get('name', 'N/A'),
@@ -241,7 +251,12 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
                     'destinationSecurityGroupTags': rule.get('destinationSecurityGroupTags', 'N/A'),
                     'enableSyslog': rule.get('enableSyslog', 'N/A'),
                     'newComments': rule.get('newComments', 'N/A'),
+<<<<<<< HEAD:fmc/fmc_tools/test.py
                     'commentHistoryList': rule.get('commentHistoryList', 'N/A')
+=======
+                    'commentHistoryList': rule.get('commentHistoryList', 'N/A'),
+                    'acp_name': acp_name
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
                 })
 
     # Add the Access Rule list to the all_objects dictionary
@@ -320,7 +335,8 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
                         'translatedPort': rule.get('translatedPort', 'N/A'),
                         'serviceProtocol': rule.get('serviceProtocol', 'N/A'),
                         'patOptions': rule.get('patOptions', 'N/A'),
-                        'description': rule.get('description', 'N/A')
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
                     })
 
     # Add the Auto NAT Rule list to the all_objects dictionary
@@ -366,7 +382,8 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
                         'patOptions': rule.get('patOptions', 'N/A'),
                         'unidirectional': rule.get('unidirectional', 'N/A'),
                         'enabled': rule.get('enabled', 'N/A'),
-                        'description': rule.get('description', 'N/A')
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
                     })
 
     # Add the Manual NAT Rule list to the all_objects dictionary

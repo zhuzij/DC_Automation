@@ -1,0 +1,312 @@
+{
+    "policies": [
+        {
+            "name": "S2SVPN_FTD_to_FGT",
+            "status": "enable",
+            "srcintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "FTD_Local_Subnet_Group"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "FGT_Remote_Subnet_Group"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        },
+        {
+            "name": "S2SVPN_FGT_to_FTD",
+            "status": "enable",
+            "srcintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "Internal"
+                },
+                {
+                    "name": "DMZ"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "FGT_Remote_Subnet_Group"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "FTD_Local_Subnet_Group"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        },
+        {
+            "name": "LabNet_to_FTD_Hosts",
+            "status": "enable",
+            "srcintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "LabNet"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "Inside_Host"
+                },
+                {
+                    "name": "DMZ_Host"
+                }
+            ],
+            "service": [
+                {
+                    "name": "Ping"
+                },
+                {
+                    "name": "FTP"
+                },
+                {
+                    "name": "SSH"
+                },
+                {
+                    "name": "HTTP"
+                },
+                {
+                    "name": "HTTPS"
+                }
+            ]
+        },
+        {
+            "name": "Internet_Access",
+            "status": "enable",
+            "srcintf": [
+                {
+                    "name": "DMZ"
+                },
+                {
+                    "name": "Internal"
+                }
+            ],
+            "dstintf": [
+                {
+                    "name": "External"
+                }
+            ],
+            "action": "accept",
+            "srcaddr": [
+                {
+                    "name": "DMZNet"
+                },
+                {
+                    "name": "InsideNet"
+                }
+            ],
+            "dstaddr": [
+                {
+                    "name": "all"
+                }
+            ],
+            "service": [
+                {
+                    "name": "ALL"
+                }
+            ]
+        }
+    ],
+    "addresses": [
+        {
+            "name": "any-ipv6",
+            "type": "ipmask",
+            "subnet": "::/0",
+            "comment": " "
+        },
+        {
+            "name": "DMZ_Host",
+            "type": "ipmask",
+            "subnet": "10.16.12.11",
+            "comment": " "
+        },
+        {
+            "name": "DMZ_Host_NAT",
+            "type": "ipmask",
+            "subnet": "209.16.10.101",
+            "comment": " "
+        },
+        {
+            "name": "Inside_Host",
+            "type": "ipmask",
+            "subnet": "10.16.11.11",
+            "comment": " "
+        },
+        {
+            "name": "Inside_Host_NAT",
+            "type": "ipmask",
+            "subnet": "209.16.10.100",
+            "comment": " "
+        },
+        {
+            "name": "Outside_Default_GW",
+            "type": "ipmask",
+            "subnet": "209.16.10.254",
+            "comment": " "
+        },
+        {
+            "name": "PAT_Pool1",
+            "type": "ipmask",
+            "subnet": "209.16.10.50",
+            "comment": " "
+        },
+        {
+            "name": "PAT_Pool2",
+            "type": "ipmask",
+            "subnet": "209.16.10.51",
+            "comment": " "
+        },
+        {
+            "name": "any-ipv4",
+            "type": "ipmask",
+            "subnet": "0.0.0.0/0",
+            "comment": " "
+        },
+        {
+            "name": "DMZNet",
+            "type": "ipmask",
+            "subnet": "10.16.12.0/24",
+            "comment": " "
+        },
+        {
+            "name": "FGT_Remote_DMZ_Subnet",
+            "type": "ipmask",
+            "subnet": "10.16.172.0/24",
+            "comment": " "
+        },
+        {
+            "name": "FGT_Remote_Inside_Subnet",
+            "type": "ipmask",
+            "subnet": "10.16.171.0/24",
+            "comment": " "
+        },
+        {
+            "name": "FGT_VPN_Subnet",
+            "type": "ipmask",
+            "subnet": "10.16.170.0/24",
+            "comment": " "
+        },
+        {
+            "name": "FTD_VPN_Subnet",
+            "type": "ipmask",
+            "subnet": "10.16.200.0/24",
+            "comment": " "
+        },
+        {
+            "name": "InsideNet",
+            "type": "ipmask",
+            "subnet": "10.16.11.0/24",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Benchmark-Tests",
+            "type": "ipmask",
+            "subnet": "198.18.0.0/15",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Link-Local",
+            "type": "ipmask",
+            "subnet": "169.254.0.0/16",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Multicast",
+            "type": "ipmask",
+            "subnet": "224.0.0.0/4",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Private-10.0.0.0-8",
+            "type": "ipmask",
+            "subnet": "10.0.0.0/8",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Private-172.16.0.0-12",
+            "type": "ipmask",
+            "subnet": "172.16.0.0/12",
+            "comment": " "
+        },
+        {
+            "name": "IPv4-Private-192.168.0.0-16",
+            "type": "ipmask",
+            "subnet": "192.168.0.0/16",
+            "comment": " "
+        },
+        {
+            "name": "IPv6-IPv4-Mapped",
+            "type": "ipmask",
+            "subnet": "::ffff:0.0.0.0/96",
+            "comment": " "
+        },
+        {
+            "name": "IPv6-Link-Local",
+            "type": "ipmask",
+            "subnet": "fe80::/10",
+            "comment": " "
+        },
+        {
+            "name": "IPv6-Private-Unique-Local-Addresses",
+            "type": "ipmask",
+            "subnet": "fc00::/7",
+            "comment": " "
+        },
+        {
+            "name": "IPv6-to-IPv4-Relay-Anycast",
+            "type": "ipmask",
+            "subnet": "192.88.99.0/24",
+            "comment": " "
+        },
+        {
+            "name": "LabNet",
+            "type": "ipmask",
+            "subnet": "192.168.3.0/24",
+            "comment": " "
+        }
+    ]
+}

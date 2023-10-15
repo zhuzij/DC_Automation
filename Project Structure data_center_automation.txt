@@ -1,4 +1,76 @@
 https://chat.openai.com/share/a40347cf-ddaa-496b-b636-8ff8da62dec3
+
+My project structure
+│   fmc_main.py
+│   fortigate_main.py
+│   Project Structure data_center_automation.txt
+│   README.md
+│   requirements.txt
+│
+├───common
+│   │   environment_manager.py
+│   │   task_manager.py
+│   │   utils.py
+│   │
+│   └───__pycache__
+│           environment_manager.cpython-311.pyc
+│           task_manager.cpython-311.pyc
+│           utils.cpython-311.pyc
+│
+├───config
+│       environment.yml
+│       tasks.yml
+│
+├───fmc
+│   └───fmc_tools
+│           test.py
+│
+└───fortigate
+    ├───archive
+    │       dedup_fgt_policies_ v11.py
+    │       fortigatepolicymanager.py
+    │       policy_manager.py
+    │       run_commands_FGT_v1.py
+    │
+    ├───fortigate_tools
+    │   │   fortigateobjectmanager.py
+    │   │   fortigate_policy_manager.py
+    │   │   fortigate_policy_manager_interface.py
+    │   │   jsondeepdiff_policies.py
+    │   │   jsondeepdiff_policy_id.py
+    │   │   json_list_of_dicts_deepdiff_folder_v1.py
+    │   │
+    │   ├───archive
+    │   │       fortigate_api_get_objects_json_v1_copy.py
+    │   │
+    │   ├───ggrandchild
+    │   │       import error_append project root dir to sys_path.py
+    │   │
+    │   └───__pycache__
+    │           fortigateobjectmanager.cpython-311.pyc
+    │           fortigate_policy_manager.cpython-311.pyc
+    │           fortigate_policy_manager_interface.cpython-311.pyc
+    │           jsondeepdiff.cpython-311.pyc
+    │           jsondeepdiff_policies.cpython-311.pyc
+    │
+    └───output
+        │   lab_fortigate_FGT_policy_dedupd_2023_10_03_23_53.xlsx
+        │   lab_fortigate_resolved_policies.txt
+        │   lab_fortigate_root_objects.json
+        │
+        └───testdiff
+            │   lab_fortigate_lab_fortigate_root_objects_lab_fortigate_root_objects2_deepdiff.txt
+            │   lab_fortigate_root_objects_lab_fortigate_root_objects2_deepdiff.txt
+            │
+            ├───after
+            │       lab_fortigate_root_objects2.json
+            │
+            └───b4
+                    lab_fortigate_root_objects.json
+
+
+
+ChatGPT suggested:
 Project Structure:data_center_automation/
 ├── main.py
 ├── common/
