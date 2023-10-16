@@ -4,12 +4,12 @@ explore possiblities of fortigate_api by https://github.com/vladimirs-git/fortig
 
 from fortigate_api import FortigateAPI
 
-fgt = FortigateAPI(host="192.168.3.1", username="joe", password="Iching12#", vdom='root')
+fgt = FortigateAPI(host="192.168.3.1", username="joe", password="Iching12#", timeout = 30) #default ignored:vdom='root')
 
 
 # Get address by name
-# addresses_by_name = fgt.address.get(uid="10.0.0.0/8")
-# print(addresses_by_name)
+addresses_by_name = fgt.address.get(uid="10.0.0.0/8")
+print(addresses_by_name)
 
 # Create address
 data = {"name": "ADDRESS",
@@ -39,10 +39,11 @@ data = {"name": "ADDRESS",
 
 from collections import Counter
 
-c = Counter(['a', 'b', 'c', 'a', 'b', 'b'])
+counter = Counter(('a', 'b', 'c', 'a', 'b', 'b')) # list/set does make sense for counting per element
+# counter = Counter({'key_1': 38, 'key_2': 91, 'key_3': 53, 'key_4': 14, 'key_5': 31}) # pass dict doesn't make sense
 # Output: Counter({'b': 3, 'a': 2, 'c': 1})
-print(f"{c}")
-
+print(f"{counter['b']=}")
+# print(f"{counter['key_5']=}") # pass dict doesn't make sense
 from collections import namedtuple
 # namedtuple vs class based:
 # Class-based approach
@@ -75,8 +76,8 @@ from collections import ChainMap
 # useful for getting the value of a key in the order you specify for the chaining of dicts
 dict1 = {'a': 1, 'b': 2}
 dict2 = {'b': 3, 'c': 4}
-cm = ChainMap(dict1, dict2)
-print(f"{cm['b']=}")
+chainmap = ChainMap(dict1, dict2)
+print(f"{chainmap['b']=}")
 
 # print os environment variables:
 import os, sys
