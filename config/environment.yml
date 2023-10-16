@@ -4,3 +4,4 @@ environments:
     username: 'joe'
     password: 'Iching12#'
     vdom: 'root'
+    timeout: 35
