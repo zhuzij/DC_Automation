@@ -37,6 +37,6 @@ def main():
         parser = FWObjectsJsonParser(selected_env_name, fwjsonfile)
         # print(fmc_manager.env)
         parser.run()
-
+    
 if __name__ == "__main__":
     main()

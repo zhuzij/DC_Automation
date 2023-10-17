@@ -7064,8 +7064,8 @@
             "fabric-object": "disable"
         },
         {
-            "name": "tcp-8080",
-            "q_origin_key": "tcp-8080",
+            "name": "tcp_8080",
+            "q_origin_key": "tcp_8080",
             "proxy": "disable",
             "category": "",
             "protocol": "TCP/UDP/SCTP",
@@ -7350,8 +7350,8 @@
             "fabric-object": "disable"
         },
         {
-            "name": "test_range",
-            "q_origin_key": "test_range",
+            "name": "test_range8",
+            "q_origin_key": "test_range8",
             "proxy": "disable",
             "category": "",
             "protocol": "TCP/UDP/SCTP",
