@@ -103,7 +103,7 @@ async def main():
     """
     Example asynchronous routine to connect, send command batches, and disconnect.
     """
-    fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="Iching12#")
+    fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="x")
     await fgt_cli.connect()
     
     # Assuming commands_string is a list of command batches; each batch is a list of commands for the same policy ID

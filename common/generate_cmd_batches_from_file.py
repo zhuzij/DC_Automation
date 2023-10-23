@@ -1,3 +1,5 @@
+# generate_cmd_batches_from_file.py
+
 def read_command_batches_from_file(file_path):
     """
     Read the FortiGate policy configurations from a text file and split them into command batches
