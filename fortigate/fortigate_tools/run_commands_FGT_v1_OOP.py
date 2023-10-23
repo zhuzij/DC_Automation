@@ -2,7 +2,13 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import paramiko
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
+# Setup logging for only this script
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler('console msg running fgt commands.txt')
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 import os
 import sys
@@ -10,8 +16,7 @@ sys.path.append(os.getcwd())
 
 # Assuming these imports match with your own modules and logic
 from common.timeit import timeit
-from common.generate_cmd_batches_from_file import command_batches  # Assuming commands_string is a list of command batches
-
+from common.generate_cmd_batches_from_file import command_batches  # Replace with your function to get command_batches
 
 class FortiGateCLIAsync:
     """
@@ -71,22 +76,33 @@ class FortiGateCLIAsync:
     async def run_command_batch(self, command_batch):
         """
         Asynchronously execute a batch of commands over SSH.
-
-        :param command_batch: List of commands to run sequentially
-        :return: Concatenated output from all commands
         """
         if self.loop is None:
             self.loop = asyncio.get_running_loop()
         if not self.is_connected:
-            print("Not connected. Please connect first.")
+            msg = "Not connected. Please connect first."
+            logger.warning(msg)
+            print(msg)
             return
         try:
             output = ''
-            for cmd in command_batch:
-                output += await self.loop.run_in_executor(self.executor, self._exec_command, self.ssh_client, cmd)
+            
+            logger.info(f"Sending command: {command_batch}")
+            print(f"Sending command: {command_batch}")
+            
+            command_batch_output = await self.loop.run_in_executor(self.executor, self._exec_command, self.ssh_client, command_batch)
+            output += command_batch_output
+
+            # Log the output
+            logger.info(f"Received output: {command_batch_output.strip()}")
+            print(f"Received output: {command_batch_output.strip()}")
+
             return output
         except Exception as e:
-            print(f"Failed to run command batch due to exception: {e}")
+            msg = f"Failed to run command batch due to exception: {e}"
+            logger.error(msg)
+            print(msg)
+
 
     async def disconnect(self):
         """
