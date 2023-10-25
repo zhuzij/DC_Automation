@@ -39,7 +39,7 @@ async def concatenate_python_files():
                 filepath = os.path.join(root, filename)
                 async with aiofiles.open(filepath, mode='r', encoding='utf-8') as infile:  # Added encoding here
                     contents = await infile.read()
-                    await outfile.write(f"# {sequence_number}. File: {filepath}\n")
+                    await outfile.write(f"# {sequence_number}. File: {filepath.replace('\\', '/')}\n")
                     await outfile.write(contents)
                     await outfile.write(f"\n# End of {filepath}\n\n")
         await outfile.write(f"# Total number of Python files concatenated: {file_count}\n")

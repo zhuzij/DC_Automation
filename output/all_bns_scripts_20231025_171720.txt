@@ -1,4 +1,4 @@
-# 1. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc_main.py
+# 1. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc_main.py
 import yaml
 from fmc.fmc_tools.fmcobjectmanager import FMCObjectManager
 from fmc.fmc_tools.fwobjectsjsonparser import FWObjectsJsonParser
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     main()
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc_main.py
 
-# 2. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate_main.py
+# 2. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate_main.py
 import yaml
 from fortigate.fortigate_tools.fortigate_policy_manager_interface import FortigatePolicyManager
 from fortigate.fortigate_tools.fortigateobjectmanager import FortigateObjectManager
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate_main.py
 
-# 3. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\environment_manager.py
+# 3. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/environment_manager.py
 from common.utils import load_yaml_file, prompt_menu
 
 class Environment_Manager:
@@ -119,7 +119,7 @@ class Environment_Manager:
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\environment_manager.py
 
-# 4. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_cmd_batches_from_file.py
+# 4. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/generate_cmd_batches_from_file.py
 # generate_cmd_batches_from_file.py
 
 def read_command_batches_from_file(file_path):
@@ -154,7 +154,7 @@ print(command_batches)
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_cmd_batches_from_file.py
 
-# 5. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_requirements.py
+# 5. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/generate_requirements.py
 import subprocess
 import pkg_resources
 
@@ -178,7 +178,7 @@ except Exception as e:
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_requirements.py
 
-# 6. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\get_all_pyfiles.py
+# 6. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/get_all_pyfiles.py
 import asyncio
 import aiofiles
 import os
@@ -220,7 +220,7 @@ async def concatenate_python_files():
                 filepath = os.path.join(root, filename)
                 async with aiofiles.open(filepath, mode='r', encoding='utf-8') as infile:  # Added encoding here
                     contents = await infile.read()
-                    await outfile.write(f"# {sequence_number}. File: {filepath}\n")
+                    await outfile.write(f"# {sequence_number}. File: {filepath.replace('\\', '/')}\n")
                     await outfile.write(contents)
                     await outfile.write(f"\n# End of {filepath}\n\n")
         await outfile.write(f"# Total number of Python files concatenated: {file_count}\n")
@@ -232,7 +232,7 @@ if __name__ == '__main__':
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\get_all_pyfiles.py
 
-# 7. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\play_back_pyfiles_to_project_folder.py
+# 7. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/play_back_pyfiles_to_project_folder.py
 """
 Overview:
 This script performs two main tasks:
@@ -355,7 +355,7 @@ if __name__ == '__main__':
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\play_back_pyfiles_to_project_folder.py
 
-# 8. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\task_manager.py
+# 8. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/task_manager.py
 from common.utils import load_yaml_file, prompt_menu
 from typing import List
 
@@ -370,7 +370,7 @@ class Task_Manager:
         return self.selected_task_name
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\task_manager.py
 
-# 9. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\timeit.py
+# 9. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/timeit.py
 import time
 from functools import wraps
 
@@ -386,7 +386,7 @@ def timeit(func):
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\timeit.py
 
-# 10. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\common\utils.py
+# 10. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/utils.py
 import yaml
 import json
 from typing import Union
@@ -418,7 +418,7 @@ def prompt_menu(options, prompt_message):
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\utils.py
 
-# 11. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\acp.py
+# 11. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/acp.py
 from fmcapi import *
 import json
 
@@ -512,7 +512,7 @@ with FMC(host=fmc_host, username=username, password=password, autodeploy=False) 
     all_objects['AccessRules'] = access_rule_list
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\acp.py
 
-# 12. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fmcobjectmanager.py
+# 12. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/fmcobjectmanager.py
 from fmcapi import *
 import json
 from typing import List, Dict
@@ -647,7 +647,7 @@ class FMCObjectManager:
 #     fmc_manager.run()
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fmcobjectmanager.py
 
-# 13. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fwobjectsjsonparser.py
+# 13. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/fwobjectsjsonparser.py
 import os
 import sys
 sys.path.append(os.getcwd())
@@ -797,7 +797,7 @@ class FWObjectsJsonParser():
         print(f"File saved to {json_file}...")
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fwobjectsjsonparser.py
 
-# 14. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\old fmc obj.py
+# 14. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/old fmc obj.py
 from fmcapi import *
 import json
 
@@ -1283,7 +1283,7 @@ TypeError: argument of type 'NoneType' is not iterable
 '''
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\old fmc obj.py
 
-# 15. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\dedup_fgt_policies_ v11.py
+# 15. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/dedup_fgt_policies_ v11.py
 #*****************************************************
 #     Filename: dedup_fgt_policies_ v11.py
 #     Purpose: Dedup FGT FW policies using Resolved
@@ -1622,7 +1622,7 @@ write_to_excel(duplicated_policies, output_excel_file_for_validation)
  
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\dedup_fgt_policies_ v11.py
 
-# 16. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\fortigatepolicymanager.py
+# 16. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/fortigatepolicymanager.py
 import pandas as pd
 import datetime
 from typing import List, Dict
@@ -1685,7 +1685,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\fortigatepolicymanager.py
 
-# 17. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\policy_manager.py
+# 17. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/policy_manager.py
 from common.utils import Environment_Task_Manager, deep_diff, deduplicate
 
 class PolicyManager:
@@ -1709,7 +1709,7 @@ selected_task = env_manager.get_task()
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\policy_manager.py
 
-# 18. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\run_commands_FGT_v1.py
+# 18. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/run_commands_FGT_v1.py
 #*****************************************************
 #     Filename: run_commands_FGT_v1.py
 #     Purpose: Run arbitary FGT CLI and display results
@@ -1908,7 +1908,7 @@ if __name__ == '__main__':
     main()
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\run_commands_FGT_v1.py
 
-# 19. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigateobjectmanager.py
+# 19. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigateobjectmanager.py
 #*****************************************************
 #     Filename: fortigateobjectmanager.py
 #     Purpose: Generate FGT Object Dictionary
@@ -1953,7 +1953,7 @@ class FortigateObjectManager:
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigateobjectmanager.py
 
-# 20. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager.py
+# 20. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigate_policy_manager.py
 #*****************************************************
 #     Filename: fortigate_policy_manager.py
 #     Purpose: Dedup FGT FW policies using Resolved
@@ -2254,7 +2254,7 @@ if __name__ == "__main__":
    
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager.py
 
-# 21. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager_interface.py
+# 21. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigate_policy_manager_interface.py
 #*****************************************************
 #     Filename: fortigate_policy_manager.py
 #     Purpose: Dedup FGT FW policies using Resolved
@@ -2556,7 +2556,7 @@ if __name__ == "__main__":
    
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager_interface.py
 
-# 22. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policies.py
+# 22. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/jsondeepdiff_policies.py
 import os
 import json
 
@@ -2702,7 +2702,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policies.py
 
-# 23. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policy_id.py
+# 23. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/jsondeepdiff_policy_id.py
 import os
 import json
 
@@ -2848,7 +2848,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policy_id.py
 
-# 24. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\json_list_of_dicts_deepdiff_folder_v1.py
+# 24. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/json_list_of_dicts_deepdiff_folder_v1.py
 #***********************************************************
 #     Filename: json_list_of_dicts_deepdiff_folder_v1.py
 #     Purpose: Present diff based upon a folder name
@@ -3022,7 +3022,7 @@ else:
  
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\json_list_of_dicts_deepdiff_folder_v1.py
 
-# 25. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1.py
+# 25. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/run_commands_FGT_v1.py
 #*****************************************************
 #     Filename: run_commands_FGT_v1.py
 #     Purpose: Run arbitary FGT CLI and display results
@@ -3221,7 +3221,7 @@ if __name__ == '__main__':
     main()
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1.py
 
-# 26. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1_OOP.py
+# 26. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/run_commands_FGT_v1_OOP.py
 # run_commands_FGT_v1_OOP.py
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -3359,7 +3359,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1_OOP.py
 
-# 27. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\fortigate_api_get_objects_json_v1_copy.py
+# 27. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/fortigate_api_get_objects_json_v1_copy.py
 #*****************************************************
 #     Filename: fortigate_api_get_objects_json_v1.py
 #     Purpose: Generate FGT Object Dictionary
@@ -3498,7 +3498,7 @@ if __name__ == '__main__':
     print(firewall_obj_dict)
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\fortigate_api_get_objects_json_v1_copy.py
 
-# 28. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP copy.py
+# 28. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/run_commands_FGT_v1_OOP copy.py
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import paramiko
@@ -3578,7 +3578,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP copy.py
 
-# 29. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP.py
+# 29. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/run_commands_FGT_v1_OOP.py
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import paramiko
@@ -3699,7 +3699,7 @@ if __name__ == "__main__":
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP.py
 
-# 30. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\ggrandchild\import error_append project root dir to sys_path.py
+# 30. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/ggrandchild/import error_append project root dir to sys_path.py
 '''
 module import error fixed by appending current module's os.getcwd() to sys.path, which is the top level project folder (absolute path)
 '''
@@ -3716,7 +3716,7 @@ with open('config/tasks.yml', 'r') as f: # this relative path somehow doesn't re
     print(yml)
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\ggrandchild\import error_append project root dir to sys_path.py
 
-# 31. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\feature tests.py
+# 31. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/feature tests.py
 """
 explore possiblities of fortigate_api by https://github.com/vladimirs-git/fortigate-api/tree/main
 """
@@ -3905,7 +3905,7 @@ https://192.168.3.1/api/v2/cmdb/system/zone/"""
 # print(new_urls)
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\feature tests.py
 
-# 32. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\find_n_replace_in_list.py
+# 32. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/find_n_replace_in_list.py
 # Sample list
 my_list = [1, 2, 3, 4, 5]
 
@@ -3922,14 +3922,14 @@ print(my_list)
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\find_n_replace_in_list.py
 
-# 33. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\__init__.py
+# 33. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/__init__.py
 import sys
 import os
 sys.path.append(os.getcwd())
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\__init__.py
 
-# 34. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR\find_python_code_photo.py
+# 34. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/OCR/find_python_code_photo.py
         
 import os
 import cv2
@@ -3993,7 +3993,7 @@ for root, dirs, files in os.walk(img_dir):
 
 # End of C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR\find_python_code_photo.py
 
-# 35. File: C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR\ocr by chat.py
+# 35. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/OCR/ocr by chat.py
 
 
 for node in top_system_data['imdata']:
