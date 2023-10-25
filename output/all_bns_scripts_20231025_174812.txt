@@ -1,0 +1,4073 @@
+# 1. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc_main.py
+import yaml
+from fmc.fmc_tools.fmcobjectmanager import FMCObjectManager
+from fmc.fmc_tools.fwobjectsjsonparser import FWObjectsJsonParser
+from common.environment_manager import Environment_Manager
+from common.task_manager import Task_Manager
+
+
+def main():
+    env_file = "fmc/config/environment.yml"
+    task_file = "fmc/config/tasks.yml"
+
+    # Instantiate Environment_Manager
+    env_mgr = Environment_Manager(env_file)
+    selected_env_name = env_mgr.get_env()
+    cred = env_mgr.get_cred()
+
+    # Instantiate Task_Manager
+    task_mgr = Task_Manager(task_file)
+    selected_task = task_mgr.get_task()
+
+    # Perform the selected task
+    if selected_task == 'create firewall object json file':
+        fmc_manager = FMCObjectManager(cred, selected_env_name)
+        # print(fmc_manager.env)
+        fmc_manager.run()
+    if selected_task == 'deduplicate_policies':
+        fortigateobjectmanager = FortigateObjectManager(selected_env_name, cred)
+        fortigateobjectmanager.run()
+        fortigatepolicymanager = FortigatePolicyManager(fortigateobjectmanager.firewall_obj_dict, selected_env_name)
+        fortigatepolicymanager.run()
+    if selected_task == 'deep_diff policies LIST[DICT]':
+        folder_path = input("Enter the path to the folder for diff: ")
+        json_diff = JSONDeepDiff(folder_path, selected_env_name)
+        json_diff.run()
+    if selected_task == 'convert object json to fortigate format':
+        fwjsonfile = "C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/output/FMC-Test7.2.0_firewall_obj_dict.json"
+        parser = FWObjectsJsonParser(selected_env_name, fwjsonfile)
+        # print(fmc_manager.env)
+        parser.run()
+    
+if __name__ == "__main__":
+    main()
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc_main.py
+
+# 2. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate_main.py
+import yaml
+from fortigate.fortigate_tools.fortigate_policy_manager_interface import FortigatePolicyManager
+from fortigate.fortigate_tools.fortigateobjectmanager import FortigateObjectManager
+from fortigate.fortigate_tools.jsondeepdiff_policies import JSONDeepDiff
+from fortigate.fortigate_tools.run_commands_FGT_v1_OOP import FortiGateCLIAsync
+from common.environment_manager import Environment_Manager
+from common.task_manager import Task_Manager
+import asyncio
+
+def main():
+    env_file = "config/environment.yml"
+    task_file = "config/tasks.yml"
+
+    # Instantiate Environment_Manager
+    env_mgr = Environment_Manager(env_file)
+    selected_env_name = env_mgr.get_env()
+    cred = env_mgr.get_cred()
+
+    # Instantiate Task_Manager
+    task_mgr = Task_Manager(task_file)
+    selected_task = task_mgr.get_task()
+
+    # Perform the selected task
+    if selected_task == 'create firewall object json file':
+        fortigateobjectmanager = FortigateObjectManager(selected_env_name, cred)
+        fortigateobjectmanager.run()
+    elif selected_task == 'deduplicate_policies':
+        fortigateobjectmanager = FortigateObjectManager(selected_env_name, cred)
+        fortigateobjectmanager.run()
+        fortigatepolicymanager = FortigatePolicyManager(fortigateobjectmanager.firewall_obj_dict, selected_env_name)
+        fortigatepolicymanager.run()
+    elif selected_task == 'deep_diff policies LIST[DICT]':
+        folder_path = input("Enter the path to the folder for diff: ")
+        json_diff = JSONDeepDiff(folder_path, selected_env_name)
+        json_diff.run()
+    elif selected_task == 'run_FGT_CLI':
+        fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="Iching12#")
+
+        async def run_commands():
+            await fgt_cli.connect()
+            output = await fgt_cli.run_command("c v\nedit root\nget system status\nget sys interface\nget router info routing-table all\nconfig firewall service custom\nrename plex_port_32400 to plex_port\nrename tcp-8080 to tcp_8080\n")
+            print(output)
+            await fgt_cli.disconnect()
+
+        asyncio.run(run_commands())
+        
+
+if __name__ == "__main__":
+    main()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate_main.py
+
+# 3. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/environment_manager.py
+from common.utils import load_yaml_file, prompt_menu
+
+class Environment_Manager:
+    def __init__(self, env_file):
+        self.env_file = env_file
+        self.environment_data = load_yaml_file(self.env_file)['environments']
+
+    def get_env(self):
+        environment_names = list(self.environment_data.keys())
+        print()
+        self.selected_env_name = prompt_menu(environment_names, "Choose an environment number from the above list: ")
+        print()
+        print(f"Selected environment: {self.selected_env_name}")
+        return self.selected_env_name
+
+    def get_cred(self):
+        self.credential = self.environment_data[self.selected_env_name]
+        return self.credential
+
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\environment_manager.py
+
+# 4. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/generate_cmd_batches_from_file.py
+# generate_cmd_batches_from_file.py
+
+def read_command_batches_from_file(file_path):
+    """
+    Read the FortiGate policy configurations from a text file and split them into command batches
+    using the keyword 'next' as a delimiter.
+
+    :param file_path: Path to the text file containing the commands
+    :return: List of command batches; each batch is a list of commands for the same policy ID
+    """
+    command_batches = []
+    command_batch = []
+
+    # Open the text file and read line by line
+    with open(file_path, 'r') as f:
+        for line in f:
+            line = line.strip()  # Remove leading/trailing white spaces
+            if line:  # Skip empty lines
+                command_batch.append(line)
+                if line == 'next':  # Cut at 'next' keyword
+                    cmd_batch = '\n'.join(command_batch)
+                    # command_batches.append(command_batch.copy())
+                    command_batches.append(cmd_batch)
+                    command_batch.clear()
+
+    return command_batches
+
+# Example usage
+file_path = "C:/Users/jacki/Downloads/labfgt_pol_config.txt"  # Replace this with the path to your file
+command_batches = read_command_batches_from_file(file_path)
+print(command_batches)
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_cmd_batches_from_file.py
+
+# 5. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/generate_requirements.py
+import subprocess
+import pkg_resources
+
+try:
+    # Get a list of installed packages
+    installed_packages = [pkg.key for pkg in pkg_resources.working_set]
+
+    # Create the requirements.txt file
+    with open('requirements.txt', 'w') as file:
+        for package in installed_packages:
+            try:
+                # Get the package version
+                package_version = subprocess.check_output(['pip', 'show', package]).decode().split('\n')[1].split(': ')[1].strip()
+
+                # Write the package and version to requirements.txt
+                file.write(f"{package}=={package_version}\n")
+            except Exception as e:
+                print(f"An error occurred while processing {package}: {e}")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\generate_requirements.py
+
+# 6. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/get_all_pyfiles.py
+import asyncio
+import aiofiles
+import os
+from datetime import datetime
+
+def excluded_folder_list(folder_list, dirs):
+    for dir_to_skip in folder_list: 
+        if dir_to_skip in dirs:
+            dirs.remove(dir_to_skip)
+
+def generate_tree(directory, folder_list):
+    tree_str = ''
+    for root, dirs, files in os.walk(directory):
+        excluded_folder_list(folder_list, dirs)
+        python_files = [f for f in files if f.endswith('.py')]
+        if python_files:
+            level = root.replace(directory, '').count(os.sep)
+            indent = ' ' * 4 * (level)
+            tree_str += f'{indent}{root}/\n'
+            subindent = ' ' * 4 * (level + 1)
+            for f in python_files:
+                tree_str += f'{subindent}{f}\n'
+    return tree_str
+
+async def concatenate_python_files(folder_list):
+    start_dir = os.getcwd()
+    output_dir = os.path.join(start_dir, 'output')
+    os.makedirs(output_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_file_path = os.path.join(output_dir, f'all_bns_scripts_{timestamp}.txt')
+
+    async with aiofiles.open(output_file_path, mode='w', encoding='utf-8') as outfile:
+        file_count = 0
+        sequence_number = 0
+        for root, dirs, files in os.walk(start_dir):
+            excluded_folder_list(folder_list, dirs)
+            python_files = [f for f in files if f.endswith('.py') and not f.startswith('all_bns_')]
+            file_count += len(python_files)
+            for filename in python_files:
+                sequence_number += 1
+                filepath = os.path.join(root, filename)
+                async with aiofiles.open(filepath, mode='r', encoding='utf-8') as infile:
+                    contents = await infile.read()
+                    await outfile.write(f"# {sequence_number}. File: {filepath.replace('\\', '/')}\n")
+                    await outfile.write(contents)
+                    await outfile.write(f"\n# End of {filepath}\n\n")
+        await outfile.write(f"# Total number of Python files concatenated: {file_count}\n")
+        tree_str = generate_tree(start_dir, folder_list)
+        await outfile.write(f"\n# Directory Structure:\n{tree_str}")
+
+if __name__ == '__main__':
+    # !!! add folders to be skipped here !!!!
+    folders_to_exclude = ['fortigate-api', 'venv']
+    asyncio.run(concatenate_python_files(folders_to_exclude))
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\get_all_pyfiles.py
+
+# 7. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/play_back_pyfiles_to_project_folder.py
+"""
+Overview:
+This script performs two main tasks:
+1. It reads an input text file that contains the code of multiple Python files. It replaces the
+   original project folder name with an alternate one and writes the modified lines to an output text file.
+2. It then asynchronously reads the output text file, extracts the code for each Python file, and writes it
+   back to its respective original file, potentially in a new directory.
+
+The script is designed to be run as a standalone program and uses Python's asyncio for asynchronous file operations.
+
+Author: Joe Zhu
+Date: Oct 25, 2023
+"""
+
+import asyncio
+import aiofiles
+import os
+from datetime import datetime
+
+def set_project_root_directory(inputf, outf, project_folder_name, alternate_project_folder_name):
+    """
+    Read the input file and replace the original project folder name with an alternate one.
+    
+    Parameters:
+    - inputf (str): Path to the input file
+    - outf (str): Path to the output file
+    - project_folder_name (str): Original project folder name to find
+    - alternate_project_folder_name (str): New project folder name to replace with
+    
+    Returns:
+    - bool: True if the file path is valid, otherwise False
+    """
+    file_path_valid = False
+    with open(inputf, 'r') as f:
+        lines = f.readlines()
+
+    # Replace original project folder name with the alternate one
+    for idx, line in enumerate(lines):
+        if 'File: C' in line or '# End of' in line:
+            line = line.replace('\\', '/') 
+            if project_folder_name in line:
+                lines[idx] = line.replace(project_folder_name, alternate_project_folder_name)
+                file_path_valid = True
+
+    # Write the updated lines to the output file
+    with open(outf, 'w') as f:
+        f.write(''.join(lines))
+        
+    return file_path_valid
+
+async def update_python_files(input_file_path):
+    """
+    Asynchronously read a text file that contains the code of multiple Python files, and write
+    each Python file's code back to its original file.
+    
+    Parameters:
+    - input_file_path (str): The path to the input file containing the Python code
+    """
+    async with aiofiles.open(input_file_path, 'r') as infile:
+        lines = await infile.readlines()
+
+    filepath = ''
+    buffer = []
+    update_count = 0
+    
+    # Loop through each line in the input file
+    for line in lines:
+        if line.startswith("#") and "File: " in line:
+            # Extract the filepath from the line
+            filepath = line.split('File: ')[1].strip()
+        
+        elif line.startswith("# End of"):
+            # When the end of a file's content is reached
+            
+            # Skip if filepath is empty or non-existent
+            if not filepath:
+                print("Skipping an empty or non-existent filepath.")
+                continue
+
+            # Skip if buffer is empty (i.e., no content to write)
+            if not buffer:
+                print(f"No content to write for {filepath}. Skipping...")
+                continue
+
+            # Check if the directory exists. If not, create it.
+            directory = os.path.dirname(filepath)
+            if not os.path.exists(directory):
+                print(f"The directory {directory} does not exist. Creating it.")
+                os.makedirs(directory)
+
+            # Write the content to the original file
+            async with aiofiles.open(filepath, 'w') as outfile:
+                await outfile.write(f"# {filepath}\n")  # Insert filepath at the top for documentation
+                await outfile.write(''.join(buffer))
+                update_count += 1
+                print(f"Updated {filepath}")
+
+            # Clear the buffer and filepath for the next file
+            buffer.clear()
+            filepath = ''
+            
+        else:
+            # Add line to buffer (holding content of the current file being processed)
+            buffer.append(line)
+    
+    print(f"Updated {update_count} Python files.")
+
+if __name__ == '__main__':
+    # Restore py files to an alternate folder
+    project_folder_name = '/DC_Automation/'
+    alternate_project_folder_name = '/DC_Automation2/'
+    inputf = 'C:/Users/jacki/Downloads/Homelab/DC_Automation/output/all_bns_scripts_20231016_004244.txt'
+    outf = f'{inputf.split(".")[0]}_for_restore_test.txt'
+    
+    file_path_valid = set_project_root_directory(inputf, outf, project_folder_name, alternate_project_folder_name)
+    if file_path_valid:
+        asyncio.run(update_python_files(outf))
+    else:
+        print(f"WARNING: Operation Aborted! Please check and make sure Project folder name is indeed {project_folder_name} in the concatenated python file name in order to avoid any potential data loss before updating the project python files!")
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\play_back_pyfiles_to_project_folder.py
+
+# 8. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/task_manager.py
+from common.utils import load_yaml_file, prompt_menu
+from typing import List
+
+class Task_Manager:
+    def __init__(self, task_file: str):
+        self.task_file = task_file
+        self.task_data: List = load_yaml_file(self.task_file)['tasks']
+
+    def get_task(self):
+        self.selected_task_name = prompt_menu(self.task_data, "Choose a task number from the above list: ")
+        print(f"Selected task: {self.selected_task_name}")
+        return self.selected_task_name
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\task_manager.py
+
+# 9. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/timeit.py
+import time
+from functools import wraps
+
+def timeit(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"{func.__name__} took {end_time - start_time:.6f} seconds to execute.")
+        return result
+    return wrapper
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\timeit.py
+
+# 10. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/common/utils.py
+import yaml
+import json
+from typing import Union
+
+
+def json_file_to_dict(file_path: str) -> Union[dict, None]:
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError as e:
+        print(f"File not found: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"An error occurred while decoding JSON: {e}")
+        return None
+
+def load_yaml_file(filepath):
+        with open(filepath, 'r') as file:
+            return yaml.safe_load(file)
+
+def prompt_menu(options, prompt_message):
+        print()
+        for idx, option in enumerate(options, 1):
+            print(f"{idx}. {option}")
+        print()
+        choice = int(input(f'{prompt_message}'))
+        return options[choice - 1]
+
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\common\utils.py
+
+# 11. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/acp.py
+from fmcapi import *
+import json
+
+'''
+https://www.youtube.com/watch?v=4NIe3T-HjDwAuthorship and gratitude for contributors.
+
+This python module was created by Dax Mickelson along with LOTs of help from Ryan Malloy and Neil Patel.
+Thank you to the github community members who have also pitched in, especially Mark Sullivan and his team.  Feel
+free to send comments/suggestions/improvements.  Either by email: dmickels@cisco.com or more importantly via a pull
+request from the github repository: https://github.com/daxm/fmcapi.
+'''
+# Initialize FMC object
+fmc_host = "fmcrestapisandbox.cisco.com"  # Add 'https://' before the host name
+username = "ZijianZhu3"
+password = "zWbWbe6u"
+
+# Initialize empty lists to hold dictionaries for each object type
+host_list = []
+address_group_list = []
+service_list = []
+service_group_list = []
+policy_list = []
+
+with FMC(host=fmc_host, username=username, password=password, autodeploy=False) as fmc:
+    # Initialize dictionaries to hold various objects
+    all_objects = {}
+     # Initialize an empty list for policies
+    policy_list = []
+
+    # Fetch and populate Policies
+    policies_obj = AccessPolicies(fmc=fmc)
+    response = policies_obj.get()
+    print(f"acp {response=}")
+    if 'items' in response:
+        for policy in response[:3]['items']:
+            policy_list.append({
+                'id': policy.get('id', 'N/A'),
+                'name': policy.get('name', 'N/A'),
+                'type': policy.get('type', 'N/A'),
+                'description': policy.get('description', 'N/A'),
+                'defaultAction': policy.get('defaultAction', 'N/A'),
+                'prefilterPolicySetting': policy.get('prefilterPolicySetting', 'N/A')
+            })
+
+    # Add the policy list to the all_objects dictionary
+    all_objects['Policies'] = policy_list
+
+    # Initialize an empty list for Access Rules
+    access_rule_list = []
+
+    # Fetch and populate AccessRules for each ACP:
+    for acp in  all_objects['Policies']:
+        acp_name = acp['name']
+        access_rules_obj = AccessRules(fmc=fmc, acp_name=acp_name)
+        response = access_rules_obj.get()
+        # print(f"accessrule {response=}")
+        if 'items' in response:
+            for rule in response['items']:
+                access_rule_list.append({
+                    'id': rule.get('id', 'N/A'),
+                    'name': rule.get('name', 'N/A'),
+                    'type': rule.get('type', 'N/A'),
+                    'action': rule.get('action', 'N/A'),
+                    'enabled': rule.get('enabled', 'N/A'),
+                    'sendEventsToFMC': rule.get('sendEventsToFMC', 'N/A'),
+                    'logFiles': rule.get('logFiles', 'N/A'),
+                    'logBegin': rule.get('logBegin', 'N/A'),
+                    'logEnd': rule.get('logEnd', 'N/A'),
+                    'variableSet': rule.get('variableSet', 'N/A'),
+                    'originalSourceNetworks': rule.get('originalSourceNetworks', 'N/A'),
+                    'vlanTags': rule.get('vlanTags', 'N/A'),
+                    'users': rule.get('users', 'N/A'),
+                    'sourceNetworks': rule.get('sourceNetworks', 'N/A'),
+                    'destinationNetworks': rule.get('destinationNetworks', 'N/A'),
+                    'sourcePorts': rule.get('sourcePorts', 'N/A'),
+                    'destinationPorts': rule.get('destinationPorts', 'N/A'),
+                    'ipsPolicy': rule.get('ipsPolicy', 'N/A'),
+                    'urls': rule.get('urls', 'N/A'),
+                    'sourceZones': rule.get('sourceZones', 'N/A'),
+                    'destinationZones': rule.get('destinationZones', 'N/A'),
+                    'applications': rule.get('applications', 'N/A'),
+                    'filePolicy': rule.get('filePolicy', 'N/A'),
+                    'sourceSecurityGroupTags': rule.get('sourceSecurityGroupTags', 'N/A'),
+                    'destinationSecurityGroupTags': rule.get('destinationSecurityGroupTags', 'N/A'),
+                    'enableSyslog': rule.get('enableSyslog', 'N/A'),
+                    'newComments': rule.get('newComments', 'N/A'),
+                    'commentHistoryList': rule.get('commentHistoryList', 'N/A')
+                })
+
+    # Add the Access Rule list to the all_objects dictionary
+    all_objects['AccessRules'] = access_rule_list
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\acp.py
+
+# 12. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/fmcobjectmanager.py
+from fmcapi import *
+import json
+from typing import List, Dict
+import time
+from common.timeit import timeit
+
+
+class FMCObjectManager:
+
+    def __init__(self, cred, env):
+        self.env = env
+        self.cred = cred
+        self.firewall_obj_dict = {}
+
+    def fetch_objects(self, obj_class, key_name, additional_fields=[], dependency=''):
+        obj_list = []
+        if dependency:
+            if obj_class.__name__ == "AccessRules":
+                obj_instance = obj_class(fmc=self.fmc, acp_name=dependency)
+                response = obj_instance.get()
+                time.sleep(30)
+                if 'items' in response:
+                    for obj in response['items']:
+                        obj_dict = {
+                            'id': obj.get('id', 'N/A'),
+                            'name': obj.get('name', 'N/A'),
+                            'type': obj.get('type', 'N/A'),
+                        }
+                        for field in additional_fields:
+                            obj_dict[field] = obj.get(field, 'any') # FMC sucks: whenever field=any, it doesn't even have the key show up in the output!!!
+                            obj_dict["acp_name"] = dependency
+                        obj_list.append(obj_dict)
+                self.firewall_obj_dict[key_name] = obj_list
+
+            elif obj_class.__name__ in ["ManualNatRules", "AutoNatRules", "NatRules"]:
+                obj_instance = obj_class(fmc=self.fmc)
+                obj_instance.nat_policy(name=dependency)
+                response = obj_instance.get()
+                time.sleep(30)
+                if 'items' in response:
+                    for obj in response['items']:
+                        obj_dict = {
+                            'id': obj.get('id', 'N/A'),
+                            'name': obj.get('name', 'N/A'),
+                            'type': obj.get('type', 'N/A'),
+                        }
+                        for field in additional_fields:
+                            obj_dict[field] = obj.get(field, 'N/A')
+                        obj_dict["natpolicy_name"] = dependency
+                        obj_list.append(obj_dict)
+                self.firewall_obj_dict[key_name] = obj_list    
+            elif obj_class.__name__ == "IPv4StaticRoutes":
+                obj_instance = obj_class(fmc=self.fmc)
+                obj_instance.device(dependency)
+                response = obj_instance.get()
+                time.sleep(30)
+                if 'items' in response:
+                    for obj in response['items']:
+                        obj_dict = {
+                            'id': obj.get('id', 'N/A'),
+                            'name': obj.get('name', 'N/A'),
+                            'type': obj.get('type', 'N/A'),
+                        }
+                        for field in additional_fields:
+                            obj_dict[field] = obj.get(field, 'N/A')
+                        obj_dict["device_name"] = dependency
+                        obj_list.append(obj_dict)
+                self.firewall_obj_dict[key_name] = obj_list    
+        else:
+            obj_instance = obj_class(fmc=self.fmc)
+            response = obj_instance.get()
+            time.sleep(30)
+            if 'items' in response:
+                for obj in response['items']:
+                    obj_dict = {
+                        'id': obj.get('id', 'N/A'),
+                        'name': obj.get('name', 'N/A'),
+                        'type': obj.get('type', 'N/A'),
+                    }
+                    for field in additional_fields:
+                        obj_dict[field] = obj.get(field, 'N/A')
+                    obj_list.append(obj_dict)
+            self.firewall_obj_dict[key_name] = obj_list
+    @timeit
+    def run(self):
+        with FMC(**self.cred, autodeploy=False) as self.fmc:
+            # Fetch and populate various types of objects
+            self.fetch_objects(Hosts, 'Addresses', ['id', 'name', 'type', 'value', 'description'])
+            self.fetch_objects(Ranges, 'Ranges', ['id', 'name', 'value', 'description'])
+            self.fetch_objects(Networks, 'Networks', ['id', 'name', 'value', 'description'])
+            self.fetch_objects(NetworkGroups, 'AddressGroups', ['id', 'name', 'type', 'objects', 'literals', 'description'])
+            self.fetch_objects(ProtocolPortObjects, 'Services', ['id', 'name', 'type', 'description', 'port', 'protocol'])
+            self.fetch_objects(ICMPv4Objects, 'ICMPv4Objects', ['id', 'name', 'type', 'description', 'overrideTargetId', 'code', 'icmpType', 'overrides', 'overridable'])
+            self.fetch_objects(PortObjectGroups, 'ServiceGroups', ['id', 'name', 'type', 'objects', 'literals', 'description'])
+            self.fetch_objects(Applications, 'Applications', ['id', 'name', 'type'])
+            self.fetch_objects(InterfaceGroups, 'InterfaceGroups', ['id', 'name', 'type', 'description', 'interfaceMode', 'interfaces'])
+            self.fetch_objects(SecurityZones, 'SecurityZones', ['id', 'name', 'type', 'description', 'interfaceMode', 'interfaces'])
+            self.fetch_objects(AccessPolicies, 'Policies', ['id', 'name', 'type', 'description', 'defaultAction', 'prefilterPolicySetting'])
+            # print(f"{self.firewall_obj_dict['Policies']=}")
+            for acp in self.firewall_obj_dict['Policies']:
+                self.acp_name = acp.get('name', None)
+                # print(f"{self.acp_name=}")
+                self.fetch_objects(AccessRules, 'AccessRules', ['id', 'name', 'type', 'action', 'enabled', 'sendEventsToFMC', 'logFiles', 'logBegin', 'logEnd', 'variableSet', 'originalSourceNetworks', 'vlanTags', 'users', 'sourceNetworks', 'destinationNetworks', 'sourcePorts', 'destinationPorts', 'ipsPolicy', 'urls', 'sourceZones', 'destinationZones', 'applications', 'filePolicy', 'sourceSecurityGroupTags', 'destinationSecurityGroupTags', 'enableSyslog', 'newComments', 'commentHistoryList', 'acp_name'], dependency=self.acp_name)
+            self.fetch_objects(PolicyAssignments, 'PolicyAssignments', ['id', 'name', 'type', 'targets', 'policy'])
+            self.fetch_objects(FTDNatPolicies, 'FTDNatPolicies', ['id', 'name', 'type'])
+            for natpolicy in self.firewall_obj_dict['FTDNatPolicies']:
+                self.natpolicy_name = natpolicy.get('name', None)
+                if self.natpolicy_name:
+                    self.fetch_objects(AutoNatRules, 'AutoNatRules', ['id', 'name', 'type', 'originalNetwork', 'translatedNetwork', 'interfaceInTranslatedNetwork', 'natType', 'interfaceIpv6', 'fallThrough', 'dns', 'routeLookup', 'noProxyArp', 'netToNet', 'sourceInterface', 'destinationInterface', 'originalPort', 'translatedPort', 'serviceProtocol', 'patOptions', 'description', 'natpolicy_name'], dependency=self.natpolicy_name)
+            for natpolicy in self.firewall_obj_dict['FTDNatPolicies']:
+                self.natpolicy_name = natpolicy.get('name', None)
+                if self.natpolicy_name:
+                    self.fetch_objects(ManualNatRules, 'ManualNatRules', ['id', 'name', 'type', 'originalSource', 'originalDestination', 'translatedSource', 'translatedDestination', 'interfaceInTranslatedSource', 'interfaceInOriginalDestination', 'natType', 'interfaceIpv6', 'fallThrough', 'dns', 'routeLookup', 'noProxyArp', 'netToNet', 'sourceInterface', 'destinationInterface', 'originalSourcePort', 'translatedSourcePort', 'originalDestinationPort', 'translatedDestinationPort', 'patOptions', 'unidirectional', 'enabled', 'description', 'natpolicy_name'], dependency=self.natpolicy_name)
+            for natpolicy in self.firewall_obj_dict['FTDNatPolicies']:
+                self.natpolicy_name = natpolicy.get('name', None)
+                if self.natpolicy_name:
+                    self.fetch_objects(NatRules, 'NatRules', ['id', 'name', 'type'], dependency=self.natpolicy_name)
+            self.fetch_objects(DeviceRecords, 'DeviceRecords', ['id', 'name', 'type', 'hostName', 'natID', 'regKey', 'license_caps', 'performanceTier', 'accessPolicy'])
+            for device in self.firewall_obj_dict['DeviceRecords']:
+                self.dev_name = device.get('name', None)
+                if self.dev_name:
+                    self.fetch_objects(IPv4StaticRoutes, 'IPv4StaticRoutes', ['id', 'name', 'interfaceName', 'selectedNetworks', 'gateway', 'routeTracking', 'metricValue', 'isTunneled'], dependency=self.dev_name)
+
+
+            # Save to JSON
+            json_file = f'fmc/output/{self.env}_firewall_obj_dict.json'  # Specify the actual path where you want to save the JSON file
+            with open(json_file, 'w') as f:
+                json.dump(self.firewall_obj_dict, f, indent=4)
+            print(f"File saved to {json_file}...")
+# if __name__ == "__main__":
+#     fmc_manager = FMCObjectManager(env, **cred)
+#     fmc_manager.run()
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fmcobjectmanager.py
+
+# 13. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/fwobjectsjsonparser.py
+import os
+import sys
+sys.path.append(os.getcwd())
+import json
+from common.utils import json_file_to_dict
+
+class FWObjectsJsonParser():
+    def __init__(self, env, json_file):
+        self.json_file = json_file
+        self.env = env
+        self.fw_obj_dict = json_file_to_dict(self.json_file)
+        self.output_fwobj_dict = {}
+
+    def run(self):
+        self.output_fwpol_list = []
+        self.output_fwpol_dict = {}
+        for rule in self.fw_obj_dict["AccessRules"]:
+            # get rule name
+            name = rule['name']
+            # get status
+            if rule['enabled'] == True:
+                status = 'enable'
+            else:
+                status = 'disable'
+            # get src int list of dict
+            srcint_list = []
+            for int in rule["sourceZones"][ "objects"]:
+                srcint_dict = {}
+                sintname = int["name"]
+                srcint_dict["name"] = sintname
+                srcint_list.append(srcint_dict)
+            # get dst int list of dict
+            dstint_list = []
+            for int in rule["destinationZones"][ "objects"]:
+                dstint_dict = {}
+                dintname = int["name"]
+                dstint_dict["name"] = dintname
+                dstint_list.append(dstint_dict)
+            # get action
+            if rule['action'] == 'ALLOW':
+                action = 'accept'
+            else:
+                action = 'deny'
+            # get srcaddr list of dict
+            srcaddr_list = []
+            if isinstance(rule["sourceNetworks"], dict):
+                for addr in rule["sourceNetworks"][ "objects"]:
+                    srcaddr_dict = {}
+                    saddrname = addr["name"]
+                    srcaddr_dict["name"] = saddrname
+                    srcaddr_list.append(srcaddr_dict)
+            else:
+                srcaddr_dict = {}
+                srcaddr_dict["name"] = 'all'
+                srcaddr_list.append(srcaddr_dict)
+            # get dstaddr list of dict
+            dstaddr_list = []
+            if isinstance(rule["destinationNetworks"], dict):
+                for addr in rule["destinationNetworks"][ "objects"]:
+                    dstaddr_dict = {}
+                    daddrname = addr["name"]
+                    dstaddr_dict["name"] = daddrname
+                    dstaddr_list.append(dstaddr_dict)
+            else:
+                dstaddr_dict = {}
+                dstaddr_dict["name"] = 'all'
+                dstaddr_list.append(dstaddr_dict)
+            # get service list of dict
+            service_list = []
+            if isinstance(rule["destinationPorts"], dict):
+                for svc in rule["destinationPorts"][ "objects"]:
+                    service_dict = {}
+                    svcname = svc["name"]
+                    service_dict["name"] = svcname
+                    service_list.append(service_dict)
+            else:
+                service_dict = {}
+                service_dict["name"] = 'ALL'
+                service_list.append(service_dict)
+            # get comments
+            comments = rule["newComments"]
+            self.output_fwpol_dict = {
+                'name': name,
+                "status": status,
+                "srcintf": srcint_list,
+                "dstintf": dstint_list,
+                "action": action,
+                "srcaddr": srcaddr_list,
+                "dstaddr": dstaddr_list,
+                "service": service_list
+                }
+            self.output_fwpol_list.append(self.output_fwpol_dict)
+        
+        # parsing host address
+        self.output_fwaddr_list = []
+        self.output_fwaddr_dict = {}
+        for addr in self.fw_obj_dict["Addresses"]:
+            # get name
+            addrname = addr['name']
+            # get type
+            if addr['type'] == 'Host':
+                type = "ipmask"
+            else:
+                pass
+            # get subnet
+            subnet = addr['value']
+            # get comment
+            comment = addr['description']
+            self.output_fwaddr_dict = {
+                'name': addrname,
+                "type": type,
+                "subnet": subnet,
+                "comment": comment
+                }
+            self.output_fwaddr_list.append(self.output_fwaddr_dict)
+        # parsing network address
+
+        self.output_fwaddr_dict = {}
+        for addr in self.fw_obj_dict["Networks"]:
+            # get name
+            addrname = addr['name']
+            # get type
+            if addr['type'] == "Network":
+                type = "ipmask"
+            else:
+                pass
+            # get subnet
+            subnet = addr['value']
+            # get comment
+            comment = addr['description']
+            self.output_fwaddr_dict = {
+                'name': addrname,
+                "type": type,
+                "subnet": subnet,
+                "comment": comment
+                }
+            self.output_fwaddr_list.append(self.output_fwaddr_dict)
+        self.output_fwobj_dict = {
+            'policies': self.output_fwpol_list,
+            'addresses': self.output_fwaddr_list
+            }
+        
+        # Save to JSON
+        json_file = f'fmc/output/{self.env}_parsed_firewall_obj_dict.json'
+        with open(json_file, 'w') as f:
+            json.dump(self.output_fwobj_dict, f, indent=4)
+        print(f"File saved to {json_file}...")
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\fwobjectsjsonparser.py
+
+# 14. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fmc/fmc_tools/old fmc obj.py
+from fmcapi import *
+import json
+
+'''
+https://www.youtube.com/watch?v=4NIe3T-HjDwAuthorship and gratitude for contributors.
+
+This python module was created by Dax Mickelson along with LOTs of help from Ryan Malloy and Neil Patel.
+Thank you to the github community members who have also pitched in, especially Mark Sullivan and his team.  Feel
+free to send comments/suggestions/improvements.  Either by email: dmickels@cisco.com or more importantly via a pull
+request from the github repository: https://github.com/daxm/fmcapi.
+'''
+# Initialize FMC object
+<<<<<<< HEAD:fmc/fmc_tools/test.py
+fmc_host = "fmcrestapisandbox.cisco.com"  # Add 'https://' before the host name
+username = "ZijianZhu3"
+password = "uCdLzGMt"
+=======
+fmc_host = "192.168.3.37"
+username = "admin"
+password = "Buguan372!"
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
+
+# Initialize empty lists to hold dictionaries for each object type
+host_list = []
+address_group_list = []
+service_list = []
+service_group_list = []
+policy_list = []
+
+with FMC(host=fmc_host, username=username, password=password, autodeploy=False) as fmc:
+    # Initialize dictionaries to hold various objects
+    all_objects = {}
+
+    # Fetch and populate Hosts (Addresses)
+    hosts_obj = Hosts(fmc=fmc)
+    response = hosts_obj.get()
+    if 'items' in response:
+        for host in response['items']:
+            host_list.append({
+                'id': host.get('id', 'N/A'),
+                'name': host.get('name', 'N/A'),
+                'type': host.get('type', 'N/A'),
+                'value': host.get('value', 'N/A'),
+                'description': host.get('description', 'N/A')
+            })
+    all_objects['Addresses'] = host_list
+
+    # Initialize an empty list for IP Ranges
+    range_list = []
+
+    # Fetch and populate Ranges
+    ranges_obj = Ranges(fmc=fmc)
+    response = ranges_obj.get()
+    if 'items' in response:
+        for ip_range in response['items']:
+            range_list.append({
+                'id': ip_range.get('id', 'N/A'),
+                'name': ip_range.get('name', 'N/A'),
+                'value': ip_range.get('value', 'N/A'),
+                'description': ip_range.get('description', 'N/A')
+            })
+
+    # Add the Range list to the all_objects dictionary
+    all_objects['Ranges'] = range_list
+
+    # Fetch and populate Address Groups
+    address_groups_obj = NetworkGroups(fmc=fmc)
+    response = address_groups_obj.get()
+    if 'items' in response:
+        for group in response['items']:
+            address_group_list.append({
+                'id': group.get('id', 'N/A'),
+                'name': group.get('name', 'N/A'),
+                'type': group.get('type', 'N/A'),
+                'objects': group.get('objects', 'N/A'),
+                'literals': group.get('literals', 'N/A'),
+                'description': group.get('description', 'N/A')
+            })
+    all_objects['AddressGroups'] = address_group_list
+
+    # Fetch and populate Services
+
+    services_obj = ProtocolPortObjects(fmc=fmc)
+    response = services_obj.get()
+    if 'items' in response:
+        for service in response['items']:
+            service_list.append({
+            'id': service.get('id', 'N/A'),
+            'name': service.get('name', 'N/A'),
+            'description': service.get('description', 'N/A'),
+            'port': service.get('port', 'N/A'),
+            'protocol': service.get('protocol', 'N/A'),
+            'type': service.get('type', 'N/A')
+            })
+
+    all_objects['Services'] = service_list
+
+    # Initialize an empty list for ICMPv4 objects
+    icmpv4_list = []
+
+    # Fetch and populate ICMPv4Objects
+    icmpv4_obj = ICMPv4Objects(fmc=fmc)
+    response = icmpv4_obj.get()
+    if 'items' in response:
+        for icmpv4 in response['items']:
+            icmpv4_list.append({
+                'id': icmpv4.get('id', 'N/A'),
+                'name': icmpv4.get('name', 'N/A'),
+                'description': icmpv4.get('description', 'N/A'),
+                'type': icmpv4.get('type', 'N/A'),
+                'overrideTargetId': icmpv4.get('overrideTargetId', 'N/A'),
+                'code': icmpv4.get('code', 'N/A'),
+                'icmpType': icmpv4.get('icmpType', 'N/A'),
+                'overrides': icmpv4.get('overrides', 'N/A'),
+                'overridable': icmpv4.get('overridable', 'N/A')
+            })
+
+    # Add the ICMPv4 list to the all_objects dictionary
+    all_objects['ICMPv4Objects'] = icmpv4_list
+
+    # Fetch and populate Service Groups
+    service_groups_obj = PortObjectGroups(fmc=fmc)  
+    response = service_groups_obj.get()
+    if 'items' in response:
+        for service_group in response['items']:
+            service_group_list.append({
+                'id': service_group.get('id', 'N/A'),
+                'name': service_group.get('name', 'N/A'),
+                'type': service_group.get('type', 'N/A'),
+                'objects': service_group.get('objects', 'N/A'),
+                'literals': service_group.get('literals', 'N/A'),
+                'description': service_group.get('description', 'N/A')
+            })
+    all_objects['ServiceGroups'] = service_group_list
+
+    # Initialize an empty list for applications
+    application_list = []
+
+    # Fetch and populate Applications
+    applications_obj = Applications(fmc=fmc)
+    response = applications_obj.get()
+    if 'items' in response:
+        for application in response['items']:
+            application_list.append({
+                'id': application.get('id', 'N/A'),
+                'name': application.get('name', 'N/A'),
+                'type': application.get('type', 'N/A')
+            })
+
+    # Add the application list to the all_objects dictionary
+    all_objects['Applications'] = application_list
+
+    # Initialize an empty list for Interface Groups
+    interface_group_list = []
+
+    # Fetch and populate InterfaceGroups
+    interface_groups_obj = InterfaceGroups(fmc=fmc)
+    response = interface_groups_obj.get()
+    if 'items' in response:
+        for intf_group in response['items']:
+            interface_group_list.append({
+                'id': intf_group.get('id', 'N/A'),
+                'name': intf_group.get('name', 'N/A'),
+                'description': intf_group.get('description', 'N/A'),
+                'interfaceMode': intf_group.get('interfaceMode', 'N/A'),
+                'interfaces': intf_group.get('interfaces', 'N/A')
+            })
+
+    # Add the Interface Group list to the all_objects dictionary
+    all_objects['InterfaceGroups'] = interface_group_list
+
+    # Initialize an empty list for Security Zones
+    security_zone_list = []
+
+    # Fetch and populate SecurityZones
+    security_zones_obj = SecurityZones(fmc=fmc)
+    response = security_zones_obj.get()
+    if 'items' in response:
+        for sec_zone in response['items']:
+            security_zone_list.append({
+                'id': sec_zone.get('id', 'N/A'),
+                'name': sec_zone.get('name', 'N/A'),
+                'type': sec_zone.get('type', 'N/A'),
+                'description': sec_zone.get('description', 'N/A'),
+                'interfaceMode': sec_zone.get('interfaceMode', 'N/A'),
+                'interfaces': sec_zone.get('interfaces', 'N/A')
+            })
+
+    # Add the Security Zone list to the all_objects dictionary
+    all_objects['SecurityZones'] = security_zone_list
+
+    # Initialize an empty list for policies
+    policy_list = []
+
+    # Fetch and populate Policies
+    policies_obj = AccessPolicies(fmc=fmc)
+    response = policies_obj.get()
+    if 'items' in response:
+<<<<<<< HEAD:fmc/fmc_tools/test.py
+        for policy in response['items']:
+=======
+        for policy in response['items'][:3]:
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
+            policy_list.append({
+                'id': policy.get('id', 'N/A'),
+                'name': policy.get('name', 'N/A'),
+                'type': policy.get('type', 'N/A'),
+                'description': policy.get('description', 'N/A'),
+                'defaultAction': policy.get('defaultAction', 'N/A'),
+                'prefilterPolicySetting': policy.get('prefilterPolicySetting', 'N/A')
+            })
+
+    # Add the policy list to the all_objects dictionary
+    all_objects['Policies'] = policy_list
+
+    # Initialize an empty list for Access Rules
+    access_rule_list = []
+
+    # Fetch and populate AccessRules for each ACP:
+    for acp in  all_objects['Policies']:
+        acp_name = acp['name']
+        access_rules_obj = AccessRules(fmc=fmc, acp_name=acp_name)
+        response = access_rules_obj.get()
+        if 'items' in response:
+            for rule in response['items']:
+                access_rule_list.append({
+                    'id': rule.get('id', 'N/A'),
+                    'name': rule.get('name', 'N/A'),
+                    'type': rule.get('type', 'N/A'),
+                    'action': rule.get('action', 'N/A'),
+                    'enabled': rule.get('enabled', 'N/A'),
+                    'sendEventsToFMC': rule.get('sendEventsToFMC', 'N/A'),
+                    'logFiles': rule.get('logFiles', 'N/A'),
+                    'logBegin': rule.get('logBegin', 'N/A'),
+                    'logEnd': rule.get('logEnd', 'N/A'),
+                    'variableSet': rule.get('variableSet', 'N/A'),
+                    'originalSourceNetworks': rule.get('originalSourceNetworks', 'N/A'),
+                    'vlanTags': rule.get('vlanTags', 'N/A'),
+                    'users': rule.get('users', 'N/A'),
+                    'sourceNetworks': rule.get('sourceNetworks', 'N/A'),
+                    'destinationNetworks': rule.get('destinationNetworks', 'N/A'),
+                    'sourcePorts': rule.get('sourcePorts', 'N/A'),
+                    'destinationPorts': rule.get('destinationPorts', 'N/A'),
+                    'ipsPolicy': rule.get('ipsPolicy', 'N/A'),
+                    'urls': rule.get('urls', 'N/A'),
+                    'sourceZones': rule.get('sourceZones', 'N/A'),
+                    'destinationZones': rule.get('destinationZones', 'N/A'),
+                    'applications': rule.get('applications', 'N/A'),
+                    'filePolicy': rule.get('filePolicy', 'N/A'),
+                    'sourceSecurityGroupTags': rule.get('sourceSecurityGroupTags', 'N/A'),
+                    'destinationSecurityGroupTags': rule.get('destinationSecurityGroupTags', 'N/A'),
+                    'enableSyslog': rule.get('enableSyslog', 'N/A'),
+                    'newComments': rule.get('newComments', 'N/A'),
+<<<<<<< HEAD:fmc/fmc_tools/test.py
+                    'commentHistoryList': rule.get('commentHistoryList', 'N/A')
+=======
+                    'commentHistoryList': rule.get('commentHistoryList', 'N/A'),
+                    'acp_name': acp_name
+>>>>>>> c87a643d619854914e2d7f376b331a97ce85d721:fmc/fmc_tools/old fmc obj.py
+                })
+
+    # Add the Access Rule list to the all_objects dictionary
+    all_objects['AccessRules'] = access_rule_list
+
+    # Initialize an empty list for Policy Assignments
+    policy_assignment_list = []
+
+    # Fetch and populate PolicyAssignments
+    policy_assignments_obj = PolicyAssignments(fmc=fmc)
+    response = policy_assignments_obj.get()
+    if 'items' in response:
+        for assignment in response['items']:
+            policy_assignment_list.append({
+                'id': assignment.get('id', 'N/A'),
+                'name': assignment.get('name', 'N/A'),
+                'type': assignment.get('type', 'N/A'),
+                'targets': assignment.get('targets', 'N/A'),
+                'policy': assignment.get('policy', 'N/A')
+            })
+
+    # Add the Policy Assignment list to the all_objects dictionary
+    all_objects['PolicyAssignments'] = policy_assignment_list
+
+ # Initialize an empty list for FTD NAT Policies
+    ftd_nat_policy_list = []
+
+    # Fetch and populate FTDNatPolicies
+    ftd_nat_policies_obj = FTDNatPolicies(fmc=fmc)
+    response = ftd_nat_policies_obj.get()
+    # print(f'Response {ftd_nat_policies_obj=}')
+    # for key in response:
+    #     print(f'response {ftd_nat_policies_obj} {key=}')
+    if 'items' in response:
+        for policy in response['items']:
+            ftd_nat_policy_list.append({
+                'id': policy.get('id', 'N/A'),
+                'name': policy.get('name', 'N/A'),
+                'type': policy.get('type', 'N/A')
+            })
+
+    # Add the FTD NAT Policy list to the all_objects dictionary
+    all_objects['FTDNatPolicies'] = ftd_nat_policy_list
+
+    # Initialize an empty list for Auto NAT Rules
+    auto_nat_rule_list = []
+
+    # Fetch AutoNatRules based on FTDNatPolicies
+    for natpolicy in all_objects['FTDNatPolicies']:
+        natpolicy_name = natpolicy.get('name', None)
+        if natpolicy_name:
+            # Fetch and populate AutoNatRules
+            auto_nat_rules_obj = AutoNatRules(fmc=fmc)
+            auto_nat_rules_obj.nat_policy(name=natpolicy_name)
+            response = auto_nat_rules_obj.get()
+            print(f"auto_nat_rules_obj {response=}")
+            if response and 'items' in response:
+                for rule in response['items']:
+                    auto_nat_rule_list.append({
+                        'id': rule.get('id', 'N/A'),
+                        'name': rule.get('name', 'N/A'),
+                        'type': rule.get('type', 'N/A'),
+                        'originalNetwork': rule.get('originalNetwork', 'N/A'),
+                        'translatedNetwork': rule.get('translatedNetwork', 'N/A'),
+                        'interfaceInTranslatedNetwork': rule.get('interfaceInTranslatedNetwork', 'N/A'),
+                        'natType': rule.get('natType', 'N/A'),
+                        'interfaceIpv6': rule.get('interfaceIpv6', 'N/A'),
+                        'fallThrough': rule.get('fallThrough', 'N/A'),
+                        'dns': rule.get('dns', 'N/A'),
+                        'routeLookup': rule.get('routeLookup', 'N/A'),
+                        'noProxyArp': rule.get('noProxyArp', 'N/A'),
+                        'netToNet': rule.get('netToNet', 'N/A'),
+                        'sourceInterface': rule.get('sourceInterface', 'N/A'),
+                        'destinationInterface': rule.get('destinationInterface', 'N/A'),
+                        'originalPort': rule.get('originalPort', 'N/A'),
+                        'translatedPort': rule.get('translatedPort', 'N/A'),
+                        'serviceProtocol': rule.get('serviceProtocol', 'N/A'),
+                        'patOptions': rule.get('patOptions', 'N/A'),
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
+                    })
+
+    # Add the Auto NAT Rule list to the all_objects dictionary
+    all_objects['AutoNatRules'] = auto_nat_rule_list
+
+   
+    # Initialize an empty list for Manual NAT Rules
+    manual_nat_rule_list = []
+
+    # Fetch ManualNatRules based on FTDNatPolicies
+    for natpolicy in all_objects['FTDNatPolicies']:
+        natpolicy_name = natpolicy.get('name', None)
+        if natpolicy_name:
+            # Fetch and populate ManualNatRules
+            manual_nat_rules_obj = ManualNatRules(fmc=fmc)
+            manual_nat_rules_obj.nat_policy(name=natpolicy_name)
+            response = manual_nat_rules_obj.get()
+            if 'items' in response:
+                for rule in response['items']:
+                    manual_nat_rule_list.append({
+                        'id': rule.get('id', 'N/A'),
+                        'name': rule.get('name', 'N/A'),
+                        'type': rule.get('type', 'N/A'),
+                        'originalSource': rule.get('originalSource', 'N/A'),
+                        'originalDestination': rule.get('originalDestination', 'N/A'),
+                        'translatedSource': rule.get('translatedSource', 'N/A'),
+                        'translatedDestination': rule.get('translatedDestination', 'N/A'),
+                        'interfaceInTranslatedSource': rule.get('interfaceInTranslatedSource', 'N/A'),
+                        'interfaceInOriginalDestination': rule.get('interfaceInOriginalDestination', 'N/A'),
+                        'natType': rule.get('natType', 'N/A'),
+                        'interfaceIpv6': rule.get('interfaceIpv6', 'N/A'),
+                        'fallThrough': rule.get('fallThrough', 'N/A'),
+                        'dns': rule.get('dns', 'N/A'),
+                        'routeLookup': rule.get('routeLookup', 'N/A'),
+                        'noProxyArp': rule.get('noProxyArp', 'N/A'),
+                        'netToNet': rule.get('netToNet', 'N/A'),
+                        'sourceInterface': rule.get('sourceInterface', 'N/A'),
+                        'destinationInterface': rule.get('destinationInterface', 'N/A'),
+                        'originalSourcePort': rule.get('originalSourcePort', 'N/A'),
+                        'translatedSourcePort': rule.get('translatedSourcePort', 'N/A'),
+                        'originalDestinationPort': rule.get('originalDestinationPort', 'N/A'),
+                        'translatedDestinationPort': rule.get('translatedDestinationPort', 'N/A'),
+                        'patOptions': rule.get('patOptions', 'N/A'),
+                        'unidirectional': rule.get('unidirectional', 'N/A'),
+                        'enabled': rule.get('enabled', 'N/A'),
+                        'description': rule.get('description', 'N/A'),
+                        'natpolicy_name': natpolicy_name
+                    })
+
+    # Add the Manual NAT Rule list to the all_objects dictionary
+    all_objects['ManualNatRules'] = manual_nat_rule_list
+
+    # NatRules class provides a way to fetch [id,name,type] of any type of nat rules - ManualNatRules or AutoNatRules
+    # Initialize an empty list for NAT Rules
+    nat_rule_list = []
+
+    for natpolicy in all_objects['FTDNatPolicies']:
+        natpolicy_name = natpolicy.get('name', None)
+        if natpolicy_name:
+            # Fetch and populate NatRules
+            nat_rules_obj = NatRules(fmc=fmc)
+            nat_rules_obj.nat_policy(name=natpolicy_name)
+            response = nat_rules_obj.get()
+            if 'items' in response:
+                for rule in response['items']:
+                    nat_rule_list.append({
+                        'id': rule.get('id', 'N/A'),
+                        'name': rule.get('name', 'N/A'),
+                        'type': rule.get('type', 'N/A')
+                    })
+
+    # Add the NAT Rule list to the all_objects dictionary
+    all_objects['NatRules'] = nat_rule_list
+
+    # Initialize an empty list for Device Records
+    device_record_list = []
+
+    # Fetch and populate DeviceRecords
+    device_records_obj = DeviceRecords(fmc=fmc)
+    response = device_records_obj.get()
+    print(f"device_records_obj {response=}")
+
+    if response and 'items' in response:
+        for record in response['items']:
+            device_record_list.append({
+                'id': record.get('id', 'N/A'),
+                'name': record.get('name', 'N/A'),
+                'type': record.get('type', 'N/A'),
+                'hostName': record.get('hostName', 'N/A'),
+                'natID': record.get('natID', 'N/A'),
+                'regKey': record.get('regKey', 'N/A'),
+                'license_caps': record.get('license_caps', 'N/A'),
+                'performanceTier': record.get('performanceTier', 'N/A'),
+                'accessPolicy': record.get('accessPolicy', 'N/A')
+            })
+
+    # Add the Device Record list to the all_objects dictionary
+    all_objects['DeviceRecords'] = device_record_list
+
+
+    # # Initialize an empty list for IPv4 Static Routes
+    # ipv4_static_route_list = []
+
+    # # Fetch and populate IPv4StaticRoutes
+    # ipv4_static_routes_obj = IPv4StaticRoutes(fmc=fmc)
+    # ipv4_static_routes_obj.device(device_name='')
+    # response = ipv4_static_routes_obj.get()
+    # print(f"ipv4_static_routes_obj {response=}")
+
+    # if response and 'items' in response:
+    #     for route in response['items']:
+    #         ipv4_static_route_list.append({
+    #             'id': route.get('id', 'N/A'),
+    #             'name': route.get('name', 'N/A'),
+    #             'interfaceName': route.get('interfaceName', 'N/A'),
+    #             'selectedNetworks': route.get('selectedNetworks', 'N/A'),
+    #             'gateway': route.get('gateway', 'N/A'),
+    #             'routeTracking': route.get('routeTracking', 'N/A'),
+    #             'metricValue': route.get('metricValue', 'N/A'),
+    #             'isTunneled': route.get('isTunneled', 'N/A')
+    #         })
+
+    # # Add the IPv4 Static Route list to the all_objects dictionary
+    # all_objects['IPv4StaticRoutes'] = ipv4_static_route_list
+
+
+
+# Save to JSON
+json_file = 'fmc/output/all_objects.json'  # Specify the actual path where you want to save the JSON file
+with open(json_file, 'w') as f:
+    json.dump(all_objects, f, indent=4)
+
+
+# staticroutes:
+r'''
+Traceback (most recent call last):
+File "c:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\test.py", line 378, in <module>
+    response = static_routes_obj.get()
+            ^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\jacki\AppData\Local\Programs\Python\Python311\Lib\site-packages\fmcapi\api_objects\apiclasstemplate.py", line 214, in get   
+    if "items" not in response:
+    ^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: argument of type 'NoneType' is not iterable
+'''
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools\old fmc obj.py
+
+# 15. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/dedup_fgt_policies_ v11.py
+#*****************************************************
+#     Filename: dedup_fgt_policies_ v11.py
+#     Purpose: Dedup FGT FW policies using Resolved
+#     Objects and write to excel for reference  
+#     Date of creation: 9-27-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import pandas as pd
+from typing import List, Dict
+from fortigate_api_get_objects_json_v1 import firewall_obj_dict, environ
+import datetime
+ 
+"""
+Purpose of the code is to identify Fortigate policies that are identical/duplicated. All nested groups would be broken down to their member components which
+are replaced with their actual values before the policy comparison.
+The following policy Dict keys have been used for the comparison:
+srcint
+dstint
+srcaddr
+dstaddr
+service
+ 
+uncomment get_fgt_objects_via_api.py if anything changed at the FGT FW
+To do:
+need to deal with zone based if need be
+need to deal with all type of protocol for service, currently only TCP/UDP/SCTP
+"""
+ 
+def resolve_intf_to_zone(name: str,
+                         zones: List[Dict]) -> List[str]:
+    # Initialize an empty list to store the resolved values
+    resolved_zones = []
+   
+    # Check if the name exists in zones objects
+    for zone in zones:
+        if zone['name'] == name:
+            resolved_zones.append(zone['name'])
+    return resolved_zones
+ 
+def resolve_addr_to_value(name: str,
+                     address_objects: List[Dict],
+                     address_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+    # Initialize an empty list to store the resolved values
+    values = []
+   
+    # Check if the name exists in address_objects
+    for obj in address_objects:
+        if obj['name'] == name:
+            # Handle different types of addresses
+            if obj.get('type') == 'ipmask':
+                subnet = obj.get('subnet', '')
+                # Split subnet mask into octets
+                prefix = subnet.split()[0]
+                subnet_mask_octets = subnet.split()[1].split('.')
+                # Calculate the CIDR prefix length based on the subnet mask
+                prefix_length = sum(bin(int(octet)).count('1') for octet in subnet_mask_octets)
+                values.append(f"{prefix}/{prefix_length}")
+            elif obj.get('type') == 'iprange':
+                values.append(f"{obj.get('start-ip', '')}-{obj.get('end-ip', '')}")
+            elif obj.get('type') in ['fqdn', 'dynamic']:
+                values.append(obj.get('name', ''))
+            return values
+   
+    # Check if the name exists in address_groups
+    for group in address_groups:
+        if group['name'] == name:
+            # For each member, recursively resolve it to its value
+            for member in group['member']:
+                values += resolve_addr_to_value(member['name'], address_objects, address_groups)
+            return values
+   
+    # If the name does not exist in either, return an empty list
+    return values
+ 
+# Define a function to resolve services to their respective port ranges
+def resolve_service_to_ports(name: str,
+                             service_objects: List[Dict],
+                             service_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+    # Initialize an empty list to store the resolved port ranges
+    port_ranges = []
+   
+    # Check if the name exists in service_objects
+    for service in service_objects:
+        if service['name'] == name:
+            protocol = service.get('protocol', '')
+            tcp_range = service.get('tcp-portrange', '')
+            udp_range = service.get('udp-portrange', '')
+            sctp_range = service.get('sctp-portrange', '')
+            icmptype = str(service.get('icmptype', ''))
+            icmpcode = str(service.get('icmpcode', ''))
+            if protocol == 'TCP/UDP/SCTP' and tcp_range:
+                port_ranges.append(f"TCP/{tcp_range}")
+                if int(service['session-ttl']) > 0:
+                    print(f"TCP/{service['name']=} {service['session-ttl']=}")
+                    port_ranges.pop()
+                    port_ranges.append(f"TCP/{tcp_range}_{service['session-ttl']}")
+            if protocol == 'TCP/UDP/SCTP' and udp_range:
+                port_ranges.append(f"UDP/{udp_range}")
+            if protocol == 'TCP/UDP/SCTP' and sctp_range:  
+                port_ranges.append(f"SCTP/{sctp_range}")
+            if protocol == 'ICMP':
+                port_ranges.append(f"ICMP_{icmptype}/{icmpcode}")
+            if protocol == 'IP':
+                port_ranges.append(f"IP_{service['name']}_{service['protocol-number']}")
+                # print(f"IP service: IP_{service['name']}_{service['protocol-number']}")
+            if protocol == 'ALL':
+                port_ranges.append(f"ALL_{service['name']}")
+                print(f"ALL {service=}")
+            # else:
+            #     port_ranges.append(f"{service['name']}")
+            #     print(f"WHAT {service=}")
+            return port_ranges
+   
+    # Check if the name exists in service_groups
+    for group in service_groups:
+        if group['name'] == name:
+            # For each member, recursively resolve it to its port ranges
+            for member in group['member']:
+                port_ranges += resolve_service_to_ports(member['name'], service_objects, service_groups)
+            return port_ranges
+   
+    # If the name does not exist in either, return an empty list
+    return port_ranges
+ 
+# Function to resolve source and destination addresses, and services in policies
+def resolve_policy(policies: List[Dict],
+                   address_objects: List[Dict],
+                   address_groups: List[Dict],
+                   service_objects: List[Dict],
+                   service_groups: List[Dict],
+                   intf_objects: List[Dict]) -> List[Dict]:
+    # Initialize an empty list to store the updated policies
+    updated_policies = []
+   
+    # Loop through each policy
+    for policy in policies:
+        updated_policy = policy.copy()  # Copy existing policy to avoid modifying the original
+        resolved_src_addresses = []
+        resolved_dst_addresses = []
+        resolved_services = []
+        resolved_srcintf = []
+        resolved_dstintf = []
+ 
+        # Loop through each source address in the policy
+        for address in policy.get('srcaddr', []):
+            # Resolve each source address to its values
+            values = resolve_addr_to_value(address['name'], address_objects, address_groups)
+            resolved_src_addresses.extend(values)
+       
+        # Loop through each destination address in the policy
+        for address in policy.get('dstaddr', []):
+            # Resolve each destination address to its values
+            values = resolve_addr_to_value(address['name'], address_objects, address_groups)
+            resolved_dst_addresses.extend(values)
+ 
+        # Loop through each service in the policy
+        for service in policy.get('service', []):
+            # Resolve each service to its port ranges
+            port_ranges = resolve_service_to_ports(service['name'], service_objects, service_groups)
+            resolved_services.extend(port_ranges)
+       
+        # Loop through each source interfaces in the policy
+        for srcintf in policy.get('srcintf', []):
+            # Resolve each source interface to zone name
+            srczone = resolve_intf_to_zone(srcintf['name'], zones)
+            resolved_srcintf.extend(srczone)
+        for dstintf in policy.get('dstintf', []):
+            # Resolve each dst interface to zone name
+            dstzone = resolve_intf_to_zone(dstintf['name'], zones)
+            resolved_dstintf.extend(dstzone)
+ 
+        # Update the 'srcint','srcaddr', 'dstaddr', and 'service' fields in the policy
+        updated_policy['resolved_srcaddr'] = list(set(resolved_src_addresses))
+        updated_policy['resolved_dstaddr'] = list(set(resolved_dst_addresses))
+        updated_policy['resolved_service'] = list(set(resolved_services))
+        updated_policy['resolved_srcintf'] = list(set(resolved_srcintf))
+        updated_policy['resolved_dstintf'] = list(set(resolved_dstintf))
+        updated_policies.append(updated_policy)
+   
+    return updated_policies
+ 
+def write_to_excel(duplicates, filename):    
+    # Get the current date and time
+    current_datetime = datetime.datetime.now()
+ 
+    # Format the date and time as a string in the desired format
+    suffix = current_datetime.strftime("%Y_%m_%d_%H_%M")
+ 
+    # Add the suffix to the filename
+    excel_file_name = filename.replace('.', f'_{suffix}.')
+ 
+    all_duplicate_policies = []
+    all_to_remove_policies = []
+   
+    # Loop through each tuple in the list and accumulate all policies
+    for duplicate_policies, to_remove_policies in duplicates:
+        all_duplicate_policies.append(duplicate_policies)
+        all_to_remove_policies.append(to_remove_policies)
+ 
+    # Convert lists of dictionaries to DataFrames
+    duplicate_df = pd.DataFrame(all_duplicate_policies)
+    to_remove_df = pd.DataFrame(all_to_remove_policies)
+ 
+    # Keep only the columns that we are interested in
+    columns_to_keep = ['policyid', 'srcintf', 'dstintf', 'srcaddr', 'dstaddr', 'service', 'action', 'comments',
+                       'resolved_srcintf', 'resolved_dstintf', 'resolved_srcaddr', 'resolved_dstaddr', 'resolved_service']
+ 
+    # Add a reference column next to 'policyid' referencing the policyid of the other tuple element
+    duplicate_df['reference_policyid'] = to_remove_df['policyid'].values
+    to_remove_df['reference_policyid'] = duplicate_df['policyid'].values
+ 
+    # Reorder columns to have 'policyid' and 'reference_policyid' at the beginning
+    columns_order = ['policyid', 'reference_policyid'] + columns_to_keep[1:]
+    duplicate_df = duplicate_df[columns_order]
+    to_remove_df = to_remove_df[columns_order]
+   
+    # Create a Pandas Excel writer using XlsxWriter as the engine
+    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+        # Write DataFrames to Excel sheets
+        duplicate_df.to_excel(writer, sheet_name='Duplicate', index=False)
+        to_remove_df.to_excel(writer, sheet_name='2bRemoved', index=False)
+ 
+# This function should take two policies as input and return True if they are identical
+# (ignoring names and considering the flattened address and service groups), and False otherwise.
+def policies_are_identical(policy1, policy2):
+    """
+    Checks whether two policies are identical.
+ 
+    Arguments:
+    policy1, policy2 -- dictionaries representing the policies to compare.
+    Returns True if the policies are identical, and False otherwise.
+    """
+    return (
+        set(policy1["resolved_srcaddr"]) == set(policy2["resolved_srcaddr"])
+        and set(policy1["resolved_dstaddr"]) == set(policy2["resolved_dstaddr"])
+        and set(policy1["resolved_service"]) == set(policy2["resolved_service"])
+        and set(policy1["resolved_srcintf"]) == set(policy2["resolved_srcintf"])
+        and set(policy1["resolved_dstintf"]) == set(policy2["resolved_dstintf"])
+    )
+ 
+# Use these functions to deduplicate your list of policies. You can do this with a simple nested loop: for each policy, check if it is identical to any of
+# the policies that come after it in the list.
+# If it is, remove the duplicate. To avoid modifying the list while you're iterating over it, you can create a new list to hold the deduplicated policies.
+ 
+def get_duplicate_policies(policies):
+    """Removes duplicate policies from a list of policies.
+ 
+    Args:
+        policies (list): List of policies to deduplicate.
+ 
+    Returns:
+        tuple: Tuple containing a list of deduplicated policies and a list of duplicates.
+ 
+    """
+    deduplicated_policies = []
+    duplicates = []
+ 
+    for i in range(len(policies)):
+        is_duplicate = False
+        for j in range(i+1, len(policies)): # avoid recursive comparison
+            if policies_are_identical(policies[i], policies[j]):
+                duplicates.append((policies[i], policies[j]))  # Save removed/duplicated policy and survived policy
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            deduplicated_policies.append(policies[i])
+ 
+    return deduplicated_policies, duplicates
+ 
+# def main():
+fpath = 'fortigate/output'
+resolved_policies_output = f"{fpath}/{environ}_resolved_policies.txt"
+script_to_get_polid_disabled = f"{fpath}/{environ}_script_to_get_polid_disabled.txt"
+output_excel_file_for_validation = f'{fpath}/{environ}_FGT_policy_dedupd.xlsx'
+ 
+# build list of dictionaries
+interfaces = firewall_obj_dict['interfaces']
+addresses = firewall_obj_dict['addresses']
+addrgroups = firewall_obj_dict['addrgroups']
+services = firewall_obj_dict['services']
+servicegrps = firewall_obj_dict['servicegrps']
+policies = firewall_obj_dict['policies']
+ippools = firewall_obj_dict['ippools']
+routes = firewall_obj_dict['routes']
+zones = firewall_obj_dict['zones']
+# Add the directory containing your script to the Python path
+# sys.path.append(f"{fpath}")
+ 
+# Now you can import your script as a module
+# import fortigate_api_get_objects_json # this actually runs it!!!
+# get_fgt_objects_via_api.run()
+ 
+# populate policies with updated src/dst/svc/srcintf/dstintf
+resolved_policies = resolve_policy(policies, addresses, addrgroups, services, servicegrps, interfaces)
+ 
+# write resolved policies to file
+with open(resolved_policies_output,'w') as f:
+    f.write(f"Resolved Policies:\n{str(resolved_policies)}")
+ 
+deduplicated_policies, duplicated_policies = get_duplicate_policies(resolved_policies)
+# print(f"{deduplicated_policies=}")
+ 
+# replace policies components with their actual values for visual examination:
+ 
+print(f"\nTotal number of policies: {len(resolved_policies)}:\n")
+# print('\ndeduplicated_policies:\n')
+# for pol in deduplicated_policies:
+#     print(pol[f'policyid'])
+# print(f'{duplicated_policies=}')
+ 
+print(f'\nduplicated_policies: total of {len(duplicated_policies)}\n')
+ 
+for search_pol,dup_pol in duplicated_policies:
+    print(f"Search policy ID: {search_pol['policyid']}, Duplicated policy ID: {dup_pol['policyid']}")
+ 
+# policy IDs to be disabled:
+policyids_for_disable = list()
+for _,pol in duplicated_policies: # second policyids in the tuple are candidates for disable, since first policyids only compare once sequentially in the policy list
+    policyids_for_disable.append(pol['policyid'])
+if policyids_for_disable:
+    print(f"\nPolicy IDs to be disabled (total:{len(set(policyids_for_disable))}):\n")
+    for i in sorted(set(policyids_for_disable)):
+        print(f"{i}")
+ 
+# create FGT change script to get the duplicated policies disabled
+with open(script_to_get_polid_disabled, 'w') as f:
+    f.write('config vdom\nedit PP-EIG-T23\nconfig firewall policy\n')
+    for polid in policyids_for_disable:
+        f.write(f'edit {polid}\nset status disable\nnext\n')
+    f.write(f'end\nend\n')
+write_to_excel(duplicated_policies, output_excel_file_for_validation)
+ 
+# if __name__ == "__main__":
+#     main()
+ 
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\dedup_fgt_policies_ v11.py
+
+# 16. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/fortigatepolicymanager.py
+import pandas as pd
+import datetime
+from typing import List, Dict
+from fortigate_api_get_objects_json_v1 import firewall_obj_dict, environ
+
+class FortigatePolicyManager:
+    def __init__(self):
+        self.interfaces = firewall_obj_dict['interfaces']
+        self.addresses = firewall_obj_dict['addresses']
+        self.addrgroups = firewall_obj_dict['addrgroups']
+        self.services = firewall_obj_dict['services']
+        self.servicegrps = firewall_obj_dict['servicegrps']
+        self.policies = firewall_obj_dict['policies']
+        self.ippools = firewall_obj_dict['ippools']
+        self.routes = firewall_obj_dict['routes']
+        self.zones = firewall_obj_dict['zones']
+        self.fpath = 'fortigate/output'
+        self.resolved_policies_output = f"{self.fpath}/{environ}_resolved_policies.txt"
+        self.script_to_get_polid_disabled = f"{self.fpath}/{environ}_script_to_get_polid_disabled.txt"
+        self.output_excel_file_for_validation = f'{self.fpath}/{environ}_FGT_policy_dedupd.xlsx'
+
+    def resolve_intf_to_zone(self, name: str, zones: List[Dict]) -> List[str]:
+        # Your existing code
+        pass
+
+    def resolve_addr_to_value(self, name: str, address_objects: List[Dict], address_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Your existing code
+        pass
+
+    def resolve_service_to_ports(self, name: str, service_objects: List[Dict], service_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Your existing code
+        pass
+
+    def resolve_policy(self, policies: List[Dict], address_objects: List[Dict], address_groups: List[Dict], service_objects: List[Dict], service_groups: List[Dict], intf_objects: List[Dict]) -> List[Dict]:
+        # Your existing code
+        pass
+
+    def write_to_excel(self, duplicates, filename):
+        # Your existing code
+        pass
+
+    def policies_are_identical(self, policy1, policy2):
+        # Your existing code
+        pass
+
+    def get_duplicate_policies(self, policies):
+        # Your existing code
+        pass
+
+    def run(self):
+        resolved_policies = self.resolve_policy(self.policies, self.addresses, self.addrgroups, self.services, self.servicegrps, self.interfaces)
+        with open(self.resolved_policies_output,'w') as f:
+            f.write(f"Resolved Policies:\n{str(resolved_policies)}")
+        deduplicated_policies, duplicated_policies = self.get_duplicate_policies(resolved_policies)
+        self.write_to_excel(duplicated_policies, self.output_excel_file_for_validation)
+
+if __name__ == "__main__":
+    manager = FortigatePolicyManager()
+    manager.run()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\fortigatepolicymanager.py
+
+# 17. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/policy_manager.py
+from common.utils import Environment_Task_Manager, deep_diff, deduplicate
+
+class PolicyManager:
+    def __init__(self, credentials):
+        self.username = credentials['username']
+        self.password = credentials['password']
+        self.host = credentials['host']
+        self.policies = []
+
+    def deduplicate_policies(self):
+        deduplicate(self.policies)
+
+    def deep_diff(self):
+        deep_diff({"key": "value"}, {"key": "new_value"})
+
+
+# Usage
+env_manager = Environment_Task_Manager('config/environment.yml', 'config/tasks.yml')
+selected_env = env_manager.get_env()
+selected_task = env_manager.get_task()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\policy_manager.py
+
+# 18. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/archive/run_commands_FGT_v1.py
+#*****************************************************
+#     Filename: run_commands_FGT_v1.py
+#     Purpose: Run arbitary FGT CLI and display results
+#     Date of creation: 8-20-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import paramiko
+import time
+import yaml
+import select
+import datetime
+import os
+import sys
+sys.path.append('C:/Users/s4739693/MyPythonProj')
+from utils.menu_tools import get_env_options
+ 
+""""
+If output gets cut off, go to send_command(), make sure use receive_all_data() for output; then in receive_all_data() adjust the buffer size as needed.
+"""
+def save_output_to_file(output):
+    timestamp = datetime.datetime.now().strftime("%Y_%b_%d_%H_%M_%S")
+    filename = f"output\\output_{timestamp}.txt"
+ 
+    with open(filename, "w") as file:
+        file.write(output)
+ 
+def run_commands(fortigate_ip, username, password, commands_string, send_per_command=False):
+    """
+    Connect to the FortiGate device and run commands.
+ 
+    Args:
+        fortigate_ip (str): IP address of the FortiGate device.
+        username (str): Username for SSH login.
+        password (str): Password for SSH login.
+        commands_string (str): String containing the commands to be executed.
+        send_per_command (bool, optional): If True, sends commands one by one.
+                                          If False, sends all commands in a single batch.
+ 
+    Returns:
+        None
+    """
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(fortigate_ip, username=username, password=password)
+        chan = ssh.invoke_shell()
+ 
+        if send_per_command:
+            cmds = get_commands_string(commands_string)
+            for cmd in cmds:
+                send_command(chan, cmd)
+        else:
+            send_command(chan, commands_string)
+ 
+        ssh.close()
+    except paramiko.AuthenticationException:
+        print("Authentication failed. Please check your credentials.")
+    except paramiko.SSHException as ssh_ex:
+        print(f"SSH connection error: {ssh_ex}")
+    except Exception as ex:
+        print(f"Error: {ex}")
+ 
+def receive_all_data(chan):
+    """
+    Receive all data from the SSH channel.
+ 
+    This function continuously reads data from the SSH channel until there is no more data available.
+    It ensures that all data is received, even if the output size is larger than the specified buffer size.
+ 
+    Args:
+        chan (paramiko.Channel): Paramiko channel object for SSH communication.
+ 
+    Returns:
+        str: The received data as a decoded string.
+ 
+    Raises:
+        paramiko.SSHException: If there is an issue with the SSH channel.
+        UnicodeDecodeError: If there is an error decoding the received data.
+ 
+    Example:
+        # Assuming 'chan' is the SSH channel
+        output = receive_all_data(chan)
+    """
+    # buffer adjustable per the need
+    buffer_size = 99999
+    data = b""
+    while True:
+        try:
+            # Use select to check if there is data available to be received
+            readable, _, _ = select.select([chan], [], [], 0.1)
+            if not readable:
+                # No data available, break the loop
+                break
+ 
+            chunk = chan.recv(buffer_size)
+        except paramiko.SSHException as ssh_ex:
+            raise ssh_ex
+        except Exception as ex:
+            raise ex
+ 
+        if not chunk:
+            break
+        data += chunk
+    return data.decode()
+ 
+def send_command(chan, command):
+    """
+    Send a command over the SSH channel and print the output.
+ 
+    Args:
+        chan (paramiko.Channel): Paramiko channel object for SSH communication.
+        command (str): Command to be sent.
+ 
+    Returns:
+        None
+    """
+    chan.send(f"{command}\n")
+    time.sleep(1)
+    # output = chan.recv(99999).decode() # use this line of code a fallback if the next line not work!!!
+    output = receive_all_data(chan)
+ 
+    print(output)
+    save_output_to_file(output)
+ 
+def get_commands_string(commands_string):
+    """
+    Split the commands string into individual commands.
+ 
+    Args:
+        commands_string (str): String containing multiple commands.
+ 
+    Returns:
+        list: List of individual commands.
+    """
+    cmds = commands_string.splitlines()
+    cmds = [cmd.strip() for cmd in cmds]
+    return cmds
+ 
+# Function to load configuration from YAML file
+def load_config(config_file, env):
+    """
+    Load configuration parameters from a YAML file based on the specified env.
+ 
+    Args:
+        config_file (str): Path to the YAML configuration file.
+        env (str): env name to load the configuration for.
+ 
+    Returns:
+        dict: A dictionary containing the configuration parameters for the given env.
+    """
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+    return config.get(env, {})
+ 
+def main():
+    # print(os.getcwd())
+    config_file = "explore/IGW/config.yaml"
+ 
+    while True:
+        print("Please choose your environment:")
+       
+        # Get the env options dynamically from the config.yaml
+        env_options = get_env_options(config_file)
+ 
+        for i, env in enumerate(env_options, 1):
+            print(f"{i}. {env.upper()}")
+ 
+        user_input = input('Please enter your choice (e.g. 1 or 2 or 1,2 or q to quit): ')
+        user_input = user_input.replace(" ", "").split(",")
+ 
+        should_exit = False  # Flag to indicate if the user wants to quit the program
+ 
+        for input_item in user_input:
+            if input_item.isdigit():
+                index = int(input_item)
+                if 1 <= index <= len(env_options):
+                    # Get the chosen env
+                    env = env_options[index - 1]
+                    config_data = load_config(config_file, env)
+                    run_commands(**config_data)
+                else:
+                    print("Invalid env choice. Please try again!\n")
+                    break  # Exit the for loop and re-prompt the user
+            elif input_item.lower() == 'q':
+                should_exit = True
+                break  # Exit the for loop and terminate the program gracefully
+            else:
+                print("Invalid input. Please try again!\n")
+                break  # Exit the for loop and re-prompt the user
+ 
+        if should_exit:
+            break  # Exit the while loop and terminate the program
+ 
+if __name__ == '__main__':
+    main()
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive\run_commands_FGT_v1.py
+
+# 19. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigateobjectmanager.py
+#*****************************************************
+#     Filename: fortigateobjectmanager.py
+#     Purpose: Generate FGT Object Dictionary
+#     Date of creation: 9-01-2023
+#     Author-Joe Zhu
+#*****************************************************
+#  C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigateobjectmanager.py
+# based upon https://github.com/vladimirs-git/fortigate-api/tree/main
+import json
+from fortigate_api import FortigateAPI
+
+class FortigateObjectManager:
+    def __init__(self, env, cred):
+        self.selected_env = env
+        self.cred = cred
+        self.vdom = cred['vdom']
+        self.fgt_obj_output = f"fortigate/output/{self.selected_env}_{self.vdom}_objects.json"
+        self.fgt = FortigateAPI(**self.cred)
+        self.firewall_obj_dict = {}
+        
+    def fetch_objects(self):
+        # Fetch various object types
+        self.firewall_obj_dict = {
+            'interfaces': self.fgt.interface.get(),
+            'addresses': self.fgt.address.get(),
+            'addrgroups': self.fgt.address_group.get(),
+            'services': self.fgt.service.get(),
+            'servicegrps': self.fgt.service_group.get(),
+            'policies': self.fgt.policy.get(),
+            'ippools': self.fgt.ip_pool.get(),
+            'routes': self.fgt.static_route.get(),
+            'zones': self.fgt.zone.get(),
+        }
+        
+    def write_to_file(self):
+        with open(self.fgt_obj_output, "w") as output_file:
+            json.dump(self.firewall_obj_dict, output_file, indent=4)
+                
+    def run(self):
+        self.fetch_objects()
+        self.write_to_file()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigateobjectmanager.py
+
+# 20. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigate_policy_manager.py
+#*****************************************************
+#     Filename: fortigate_policy_manager.py
+#     Purpose: Dedup FGT FW policies using Resolved
+#     Objects and write to excel for reference  
+#     Date of creation: 9-27-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import pandas as pd
+from typing import List, Dict
+import datetime
+ 
+"""
+Purpose of the code is to identify Fortigate policies that are identical/duplicated. All nested groups would be broken down to their member components which
+are replaced with their actual values before the policy comparison.
+The following policy Dict keys have been used for the comparison:
+srcint
+dstint
+srcaddr
+dstaddr
+service
+ 
+uncomment get_fgt_objects_via_api.py if anything changed at the FGT FW
+To do:
+need to deal with zone based if need be
+need to deal with all type of protocol for service, currently only TCP/UDP/SCTP
+"""
+
+
+class FortigatePolicyManager:
+    def __init__(self, firewall_obj_dict, selected_env_name):
+        self.interfaces = firewall_obj_dict['interfaces']
+        self.addresses = firewall_obj_dict['addresses']
+        self.addrgroups = firewall_obj_dict['addrgroups']
+        self.services = firewall_obj_dict['services']
+        self.servicegrps = firewall_obj_dict['servicegrps']
+        self.policies = firewall_obj_dict['policies']
+        self.ippools = firewall_obj_dict['ippools']
+        self.routes = firewall_obj_dict['routes']
+        self.zones = firewall_obj_dict['zones']
+        self.environ = selected_env_name
+        self.fpath = 'fortigate/output'
+        self.resolved_policies_output = f"{self.fpath}/{self.environ}_resolved_policies.txt"
+        self.script_to_get_polid_disabled = f"{self.fpath}/{self.environ}_script_to_get_polid_disabled.txt"
+        self.output_excel_file_for_validation = f'{self.fpath}/{self.environ}_FGT_policy_dedupd.xlsx'
+
+    def resolve_intf_to_zone(self, name: str,
+                         zones: List[Dict]) -> List[str]:
+        # Initialize an empty list to store the resolved values
+        resolved_zones = []
+        # Check if the name exists in zones objects
+        for zone in zones:
+            if zone['name'] == name:
+                resolved_zones.append(zone['name'])
+        return resolved_zones
+
+    def resolve_addr_to_value(self, name: str,
+                     address_objects: List[Dict],
+                     address_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Initialize an empty list to store the resolved values
+        values = []
+    
+        # Check if the name exists in address_objects
+        for obj in address_objects:
+            if obj['name'] == name:
+                # Handle different types of addresses
+                if obj.get('type') == 'ipmask':
+                    subnet = obj.get('subnet', '')
+                    # Split subnet mask into octets
+                    prefix = subnet.split()[0]
+                    subnet_mask_octets = subnet.split()[1].split('.')
+                    # Calculate the CIDR prefix length based on the subnet mask
+                    prefix_length = sum(bin(int(octet)).count('1') for octet in subnet_mask_octets)
+                    values.append(f"{prefix}/{prefix_length}")
+                elif obj.get('type') == 'iprange':
+                    values.append(f"{obj.get('start-ip', '')}-{obj.get('end-ip', '')}")
+                elif obj.get('type') in ['fqdn', 'dynamic']:
+                    values.append(obj.get('name', ''))
+                return values
+            # Check if the name exists in address_groups
+        for group in address_groups:
+            if group['name'] == name:
+                # For each member, recursively resolve it to its value
+                for member in group['member']:
+                    values += self.resolve_addr_to_value(member['name'], address_objects, address_groups)
+                return values
+    
+        # If the name does not exist in either, return an empty list
+        return values
+    
+
+    def resolve_service_to_ports(self, name: str,
+                             service_objects: List[Dict],
+                             service_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Initialize an empty list to store the resolved port ranges
+        port_ranges = []
+    
+        # Check if the name exists in service_objects
+        for service in service_objects:
+            if service['name'] == name:
+                protocol = service.get('protocol', '')
+                tcp_range = service.get('tcp-portrange', '')
+                udp_range = service.get('udp-portrange', '')
+                sctp_range = service.get('sctp-portrange', '')
+                icmptype = str(service.get('icmptype', ''))
+                icmpcode = str(service.get('icmpcode', ''))
+                if protocol == 'TCP/UDP/SCTP' and tcp_range:
+                    port_ranges.append(f"TCP/{tcp_range}")
+                    if int(service['session-ttl']) > 0:
+                        print(f"TCP/{service['name']=} {service['session-ttl']=}")
+                        port_ranges.pop()
+                        port_ranges.append(f"TCP/{tcp_range}_{service['session-ttl']}")
+                if protocol == 'TCP/UDP/SCTP' and udp_range:
+                    port_ranges.append(f"UDP/{udp_range}")
+                if protocol == 'TCP/UDP/SCTP' and sctp_range:  
+                    port_ranges.append(f"SCTP/{sctp_range}")
+                if protocol == 'ICMP':
+                    port_ranges.append(f"ICMP_{icmptype}/{icmpcode}")
+                if protocol == 'IP':
+                    port_ranges.append(f"IP_{service['name']}_{service['protocol-number']}")
+                    # print(f"IP service: IP_{service['name']}_{service['protocol-number']}")
+                if protocol == 'ALL':
+                    port_ranges.append(f"ALL_{service['name']}")
+                    print(f"ALL {service=}")
+                # else:
+                #     port_ranges.append(f"{service['name']}")
+                #     print(f"WHAT {service=}")
+                return port_ranges
+    
+        # Check if the name exists in service_groups
+        for group in service_groups:
+            if group['name'] == name:
+                # For each member, recursively resolve it to its port ranges
+                for member in group['member']:
+                    port_ranges += self.resolve_service_to_ports(member['name'], service_objects, service_groups)
+                return port_ranges
+    
+        # If the name does not exist in either, return an empty list
+        return port_ranges
+
+    def resolve_policy(self, policies: List[Dict],
+                   address_objects: List[Dict],
+                   address_groups: List[Dict],
+                   service_objects: List[Dict],
+                   service_groups: List[Dict],
+                   intf_objects: List[Dict]) -> List[Dict]:
+        # Initialize an empty list to store the updated policies
+        updated_policies = []
+    
+        # Loop through each policy
+        for policy in policies:
+            updated_policy = policy.copy()  # Copy existing policy to avoid modifying the original
+            resolved_src_addresses = []
+            resolved_dst_addresses = []
+            resolved_services = []
+            resolved_srcintf = []
+            resolved_dstintf = []
+    
+            # Loop through each source address in the policy
+            for address in policy.get('srcaddr', []):
+                # Resolve each source address to its values
+                values = self.resolve_addr_to_value(address['name'], address_objects, address_groups)
+                resolved_src_addresses.extend(values)
+        
+            # Loop through each destination address in the policy
+            for address in policy.get('dstaddr', []):
+                # Resolve each destination address to its values
+                values = self.resolve_addr_to_value(address['name'], address_objects, address_groups)
+                resolved_dst_addresses.extend(values)
+    
+            # Loop through each service in the policy
+            for service in policy.get('service', []):
+                # Resolve each service to its port ranges
+                port_ranges = self.resolve_service_to_ports(service['name'], service_objects, service_groups)
+                resolved_services.extend(port_ranges)
+        
+            # Loop through each source interfaces in the policy
+            for srcintf in policy.get('srcintf', []):
+                # Resolve each source interface to zone name
+                srczone = self.resolve_intf_to_zone(srcintf['name'], self.zones)
+                resolved_srcintf.extend(srczone)
+            for dstintf in policy.get('dstintf', []):
+                # Resolve each dst interface to zone name
+                dstzone = self.resolve_intf_to_zone(dstintf['name'], self.zones)
+                resolved_dstintf.extend(dstzone)
+    
+            # Update the 'srcint','srcaddr', 'dstaddr', and 'service' fields in the policy
+            updated_policy['resolved_srcaddr'] = list(set(resolved_src_addresses))
+            updated_policy['resolved_dstaddr'] = list(set(resolved_dst_addresses))
+            updated_policy['resolved_service'] = list(set(resolved_services))
+            updated_policy['resolved_srcintf'] = list(set(resolved_srcintf))
+            updated_policy['resolved_dstintf'] = list(set(resolved_dstintf))
+            updated_policies.append(updated_policy)
+    
+        return updated_policies
+    
+    def write_to_excel(self, duplicates, filename):    
+        # Get the current date and time
+        current_datetime = datetime.datetime.now()
+    
+        # Format the date and time as a string in the desired format
+        suffix = current_datetime.strftime("%Y_%m_%d_%H_%M")
+    
+        # Add the suffix to the filename
+        excel_file_name = filename.replace('.', f'_{suffix}.')
+    
+        all_duplicate_policies = []
+        all_to_remove_policies = []
+    
+        # Loop through each tuple in the list and accumulate all policies
+        for duplicate_policies, to_remove_policies in duplicates:
+            all_duplicate_policies.append(duplicate_policies)
+            all_to_remove_policies.append(to_remove_policies)
+    
+        # Convert lists of dictionaries to DataFrames
+        duplicate_df = pd.DataFrame(all_duplicate_policies)
+        to_remove_df = pd.DataFrame(all_to_remove_policies)
+    
+        # Keep only the columns that we are interested in
+        columns_to_keep = ['policyid', 'srcintf', 'dstintf', 'srcaddr', 'dstaddr', 'service', 'action', 'comments',
+                        'resolved_srcintf', 'resolved_dstintf', 'resolved_srcaddr', 'resolved_dstaddr', 'resolved_service']
+    
+        # Add a reference column next to 'policyid' referencing the policyid of the other tuple element
+        duplicate_df['reference_policyid'] = to_remove_df['policyid'].values
+        to_remove_df['reference_policyid'] = duplicate_df['policyid'].values
+    
+        # Reorder columns to have 'policyid' and 'reference_policyid' at the beginning
+        columns_order = ['policyid', 'reference_policyid'] + columns_to_keep[1:]
+        duplicate_df = duplicate_df[columns_order]
+        to_remove_df = to_remove_df[columns_order]
+    
+        # Create a Pandas Excel writer using XlsxWriter as the engine
+        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+            # Write DataFrames to Excel sheets
+            duplicate_df.to_excel(writer, sheet_name='Duplicate', index=False)
+            to_remove_df.to_excel(writer, sheet_name='2bRemoved', index=False)
+    
+    # This function should take two policies as input and return True if they are identical
+    # (ignoring names and considering the flattened address and service groups), and False otherwise.
+    def policies_are_identical(self, policy1, policy2):
+        """
+        Checks whether two policies are identical.
+    
+        Arguments:
+        policy1, policy2 -- dictionaries representing the policies to compare.
+        Returns True if the policies are identical, and False otherwise.
+        """
+        return (
+            set(policy1["resolved_srcaddr"]) == set(policy2["resolved_srcaddr"])
+            and set(policy1["resolved_dstaddr"]) == set(policy2["resolved_dstaddr"])
+            and set(policy1["resolved_service"]) == set(policy2["resolved_service"])
+            and set(policy1["resolved_srcintf"]) == set(policy2["resolved_srcintf"])
+            and set(policy1["resolved_dstintf"]) == set(policy2["resolved_dstintf"])
+        )
+    
+    # Use these functions to deduplicate your list of policies. You can do this with a simple nested loop: for each policy, check if it is identical to any of
+    # the policies that come after it in the list.
+    # If it is, remove the duplicate. To avoid modifying the list while you're iterating over it, you can create a new list to hold the deduplicated policies.
+    
+    def get_duplicate_policies(self, policies):
+        """Removes duplicate policies from a list of policies.
+    
+        Args:
+            policies (list): List of policies to deduplicate.
+    
+        Returns:
+            tuple: Tuple containing a list of deduplicated policies and a list of duplicates.
+    
+        """
+        deduplicated_policies = []
+        duplicates = []
+    
+        for i in range(len(policies)):
+            is_duplicate = False
+            for j in range(i+1, len(policies)): # avoid recursive comparison
+                if self.policies_are_identical(policies[i], policies[j]):
+                    duplicates.append((policies[i], policies[j]))  # Save removed/duplicated policy and survived policy
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                deduplicated_policies.append(policies[i])
+    
+        return deduplicated_policies, duplicates
+ 
+
+    def run(self):
+        resolved_policies = self.resolve_policy(self.policies, self.addresses, self.addrgroups, self.services, self.servicegrps, self.interfaces)
+        with open(self.resolved_policies_output,'w') as f:
+            f.write(f"Resolved Policies:\n{str(resolved_policies)}")
+        deduplicated_policies, duplicated_policies = self.get_duplicate_policies(resolved_policies)
+        self.write_to_excel(duplicated_policies, self.output_excel_file_for_validation)
+
+if __name__ == "__main__":
+    manager = FortigatePolicyManager()
+    manager.run()
+
+
+   
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager.py
+
+# 21. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/fortigate_policy_manager_interface.py
+#*****************************************************
+#     Filename: fortigate_policy_manager.py
+#     Purpose: Dedup FGT FW policies using Resolved
+#     Objects and write to excel for reference  
+#     Date of creation: 9-27-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import pandas as pd
+from typing import List, Dict
+import datetime
+ 
+"""
+Purpose of the code is to identify Fortigate policies that are identical/duplicated. All nested groups would be broken down to their member components which
+are replaced with their actual values before the policy comparison.
+The following policy Dict keys have been used for the comparison:
+srcint
+dstint
+srcaddr
+dstaddr
+service
+ 
+uncomment get_fgt_objects_via_api.py if anything changed at the FGT FW
+To do:
+need to deal with zone based if need be
+need to deal with all type of protocol for service, currently only TCP/UDP/SCTP
+"""
+
+
+class FortigatePolicyManager:
+    def __init__(self, firewall_obj_dict, selected_env_name):
+        self.interfaces = firewall_obj_dict['interfaces']
+        self.addresses = firewall_obj_dict['addresses']
+        self.addrgroups = firewall_obj_dict['addrgroups']
+        self.services = firewall_obj_dict['services']
+        self.servicegrps = firewall_obj_dict['servicegrps']
+        self.policies = firewall_obj_dict['policies']
+        self.ippools = firewall_obj_dict['ippools']
+        self.routes = firewall_obj_dict['routes']
+        self.environ = selected_env_name
+        self.fpath = 'fortigate/output'
+        self.resolved_policies_output = f"{self.fpath}/{self.environ}_resolved_policies.txt"
+        self.script_to_get_polid_disabled = f"{self.fpath}/{self.environ}_script_to_get_polid_disabled.txt"
+        self.output_excel_file_for_validation = f'{self.fpath}/{self.environ}_FGT_policy_dedupd.xlsx'
+
+    
+    def resolve_intf(self, name: str,
+                         interfaces: List[Dict]) -> List[str]:
+        # Initialize an empty list to store the resolved values
+        resolved_interfaces = []
+        # Check if the name exists in interfaces objects
+        for int in interfaces:
+            if int['name'] == name:
+                resolved_interfaces.append(int['name'])
+        return resolved_interfaces
+
+
+    def resolve_addr_to_value(self, name: str,
+                     address_objects: List[Dict],
+                     address_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Initialize an empty list to store the resolved values
+        values = []
+    
+        # Check if the name exists in address_objects
+        for obj in address_objects:
+            if obj['name'] == name:
+                # Handle different types of addresses
+                if obj.get('type') == 'ipmask':
+                    subnet = obj.get('subnet', '')
+                    # Split subnet mask into octets
+                    prefix = subnet.split()[0]
+                    subnet_mask_octets = subnet.split()[1].split('.')
+                    # Calculate the CIDR prefix length based on the subnet mask
+                    prefix_length = sum(bin(int(octet)).count('1') for octet in subnet_mask_octets)
+                    values.append(f"{prefix}/{prefix_length}")
+                elif obj.get('type') == 'iprange':
+                    values.append(f"{obj.get('start-ip', '')}-{obj.get('end-ip', '')}")
+                elif obj.get('type') in ['fqdn', 'dynamic']:
+                    values.append(obj.get('name', ''))
+                return values
+            # Check if the name exists in address_groups
+        for group in address_groups:
+            if group['name'] == name:
+                # For each member, recursively resolve it to its value
+                for member in group['member']:
+                    values += self.resolve_addr_to_value(member['name'], address_objects, address_groups)
+                return values
+    
+        # If the name does not exist in either, return an empty list
+        return values
+    
+
+    def resolve_service_to_ports(self, name: str,
+                             service_objects: List[Dict],
+                             service_groups: List[Dict[str, List[Dict[str, str]]]]) -> List[str]:
+        # Initialize an empty list to store the resolved port ranges
+        port_ranges = []
+    
+        # Check if the name exists in service_objects
+        for service in service_objects:
+            if service['name'] == name:
+                protocol = service.get('protocol', '')
+                tcp_range = service.get('tcp-portrange', '')
+                udp_range = service.get('udp-portrange', '')
+                sctp_range = service.get('sctp-portrange', '')
+                icmptype = str(service.get('icmptype', ''))
+                icmpcode = str(service.get('icmpcode', ''))
+                if protocol == 'TCP/UDP/SCTP' and tcp_range:
+                    port_ranges.append(f"TCP/{tcp_range}")
+                    if int(service['session-ttl']) > 0:
+                        print(f"TCP/{service['name']=} {service['session-ttl']=}")
+                        port_ranges.pop()
+                        port_ranges.append(f"TCP/{tcp_range}_{service['session-ttl']}")
+                if protocol == 'TCP/UDP/SCTP' and udp_range:
+                    port_ranges.append(f"UDP/{udp_range}")
+                if protocol == 'TCP/UDP/SCTP' and sctp_range:  
+                    port_ranges.append(f"SCTP/{sctp_range}")
+                if protocol == 'ICMP':
+                    port_ranges.append(f"ICMP_{icmptype}/{icmpcode}")
+                if protocol == 'IP':
+                    port_ranges.append(f"IP_{service['name']}_{service['protocol-number']}")
+                    # print(f"IP service: IP_{service['name']}_{service['protocol-number']}")
+                if protocol == 'ALL':
+                    port_ranges.append(f"ALL_{service['name']}")
+                    print(f"ALL {service=}")
+                # else:
+                #     port_ranges.append(f"{service['name']}")
+                #     print(f"WHAT {service=}")
+                return port_ranges
+    
+        # Check if the name exists in service_groups
+        for group in service_groups:
+            if group['name'] == name:
+                # For each member, recursively resolve it to its port ranges
+                for member in group['member']:
+                    port_ranges += self.resolve_service_to_ports(member['name'], service_objects, service_groups)
+                return port_ranges
+    
+        # If the name does not exist in either, return an empty list
+        return port_ranges
+
+    def resolve_policy(self, policies: List[Dict],
+                   address_objects: List[Dict],
+                   address_groups: List[Dict],
+                   service_objects: List[Dict],
+                   service_groups: List[Dict],
+                   intf_objects: List[Dict]) -> List[Dict]:
+        # Initialize an empty list to store the updated policies
+        updated_policies = []
+    
+        # Loop through each policy
+        for policy in policies:
+            updated_policy = policy.copy()  # Copy existing policy to avoid modifying the original
+            resolved_src_addresses = []
+            resolved_dst_addresses = []
+            resolved_services = []
+            resolved_srcintf = []
+            resolved_dstintf = []
+    
+            # Loop through each source address in the policy
+            for address in policy.get('srcaddr', []):
+                # Resolve each source address to its values
+                values = self.resolve_addr_to_value(address['name'], address_objects, address_groups)
+                resolved_src_addresses.extend(values)
+        
+            # Loop through each destination address in the policy
+            for address in policy.get('dstaddr', []):
+                # Resolve each destination address to its values
+                values = self.resolve_addr_to_value(address['name'], address_objects, address_groups)
+                resolved_dst_addresses.extend(values)
+    
+            # Loop through each service in the policy
+            for service in policy.get('service', []):
+                # Resolve each service to its port ranges
+                port_ranges = self.resolve_service_to_ports(service['name'], service_objects, service_groups)
+                resolved_services.extend(port_ranges)
+        
+            # Loop through each source interfaces in the policy
+            for srcintf in policy.get('srcintf', []):
+                # Resolve each source interface to zone name
+                srcint = self.resolve_intf(srcintf['name'], self.interfaces)
+                resolved_srcintf.extend(srcint)
+            for dstintf in policy.get('dstintf', []):
+                # Resolve each dst interface to zone name
+                dstint = self.resolve_intf(dstintf['name'], self.interfaces)
+                resolved_dstintf.extend(dstint)
+    
+            # Update the 'srcint','srcaddr', 'dstaddr', and 'service' fields in the policy
+            updated_policy['resolved_srcaddr'] = list(set(resolved_src_addresses))
+            updated_policy['resolved_dstaddr'] = list(set(resolved_dst_addresses))
+            updated_policy['resolved_service'] = list(set(resolved_services))
+            updated_policy['resolved_srcintf'] = list(set(resolved_srcintf))
+            updated_policy['resolved_dstintf'] = list(set(resolved_dstintf))
+            updated_policies.append(updated_policy)
+    
+        return updated_policies
+    
+    def write_to_excel(self, duplicates, filename):    
+        # Get the current date and time
+        current_datetime = datetime.datetime.now()
+    
+        # Format the date and time as a string in the desired format
+        suffix = current_datetime.strftime("%Y_%m_%d_%H_%M")
+    
+        # Add the suffix to the filename
+        excel_file_name = filename.replace('.', f'_{suffix}.')
+    
+        all_duplicate_policies = []
+        all_to_remove_policies = []
+    
+        # Loop through each tuple in the list and accumulate all policies
+        for duplicate_policies, to_remove_policies in duplicates:
+            all_duplicate_policies.append(duplicate_policies)
+            all_to_remove_policies.append(to_remove_policies)
+    
+        # Convert lists of dictionaries to DataFrames
+        duplicate_df = pd.DataFrame(all_duplicate_policies)
+        to_remove_df = pd.DataFrame(all_to_remove_policies)
+    
+        # Keep only the columns that we are interested in
+        columns_to_keep = ['policyid', 'srcintf', 'dstintf', 'srcaddr', 'dstaddr', 'service', 'action', 'comments',
+                        'resolved_srcintf', 'resolved_dstintf', 'resolved_srcaddr', 'resolved_dstaddr', 'resolved_service']
+    
+        # Add a reference column next to 'policyid' referencing the policyid of the other tuple element
+        duplicate_df['reference_policyid'] = to_remove_df['policyid'].values
+        to_remove_df['reference_policyid'] = duplicate_df['policyid'].values
+    
+        # Reorder columns to have 'policyid' and 'reference_policyid' at the beginning
+        columns_order = ['policyid', 'reference_policyid'] + columns_to_keep[1:]
+        duplicate_df = duplicate_df[columns_order]
+        to_remove_df = to_remove_df[columns_order]
+    
+        # Create a Pandas Excel writer using XlsxWriter as the engine
+        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+            # Write DataFrames to Excel sheets
+            duplicate_df.to_excel(writer, sheet_name='Duplicate', index=False)
+            to_remove_df.to_excel(writer, sheet_name='2bRemoved', index=False)
+    
+    # This function should take two policies as input and return True if they are identical
+    # (ignoring names and considering the flattened address and service groups), and False otherwise.
+    def policies_are_identical(self, policy1, policy2):
+        """
+        Checks whether two policies are identical.
+    
+        Arguments:
+        policy1, policy2 -- dictionaries representing the policies to compare.
+        Returns True if the policies are identical, and False otherwise.
+        """
+        return (
+            set(policy1["resolved_srcaddr"]) == set(policy2["resolved_srcaddr"])
+            and set(policy1["resolved_dstaddr"]) == set(policy2["resolved_dstaddr"])
+            and set(policy1["resolved_service"]) == set(policy2["resolved_service"])
+            and set(policy1["resolved_srcintf"]) == set(policy2["resolved_srcintf"])
+            and set(policy1["resolved_dstintf"]) == set(policy2["resolved_dstintf"])
+        )
+    
+    # Use these functions to deduplicate your list of policies. You can do this with a simple nested loop: for each policy, check if it is identical to any of
+    # the policies that come after it in the list.
+    # If it is, remove the duplicate. To avoid modifying the list while you're iterating over it, you can create a new list to hold the deduplicated policies.
+    
+    def get_duplicate_policies(self, policies):
+        """Removes duplicate policies from a list of policies.
+    
+        Args:
+            policies (list): List of policies to deduplicate.
+    
+        Returns:
+            tuple: Tuple containing a list of deduplicated policies and a list of duplicates.
+    
+        """
+        deduplicated_policies = []
+        duplicates = []
+    
+        for i in range(len(policies)):
+            is_duplicate = False
+            for j in range(i+1, len(policies)): # avoid recursive comparison
+                if self.policies_are_identical(policies[i], policies[j]):
+                    duplicates.append((policies[i], policies[j]))  # Save removed/duplicated policy and survived policy
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                deduplicated_policies.append(policies[i])
+    
+        return deduplicated_policies, duplicates
+ 
+
+    def run(self):
+        resolved_policies = self.resolve_policy(self.policies, self.addresses, self.addrgroups, self.services, self.servicegrps, self.interfaces)
+        with open(self.resolved_policies_output,'w') as f:
+            f.write(f"Resolved Policies:\n{str(resolved_policies)}")
+        deduplicated_policies, duplicated_policies = self.get_duplicate_policies(resolved_policies)
+        self.write_to_excel(duplicated_policies, self.output_excel_file_for_validation)
+
+if __name__ == "__main__":
+    manager = FortigatePolicyManager()
+    manager.run()
+
+
+   
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\fortigate_policy_manager_interface.py
+
+# 22. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/jsondeepdiff_policies.py
+import os
+import json
+
+class JSONDeepDiff:
+    '''
+    Class to deepdiff policies dictionary (of list of dictionaries) based upon "policyid"
+    '''
+    def __init__(self, folder_path, selected_env_name):
+        self.folder_path = folder_path
+        self.folder1_path = os.path.join(folder_path, "b4")
+        self.folder2_path = os.path.join(folder_path, "after")
+        self.script_folder_path = os.path.dirname(os.path.abspath(__file__))
+        self.selected_env_name = selected_env_name
+
+    @staticmethod
+    def compare_dicts(dict1, dict2, prefix=""):
+        """
+        Recursively compares two dictionaries and generates a list of differences.
+    
+        Args:
+            dict1 (dict): The first dictionary to compare.
+            dict2 (dict): The second dictionary to compare.
+            prefix (str): A prefix to add to the difference keys.
+    
+        Returns:
+            list: A list of differences between the dictionaries.
+        """
+        diff_list = []
+    
+        for key in dict1.keys():
+            if key not in dict2:
+                diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+    
+        for key in dict2.keys():
+            if key not in dict1:
+                diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+    
+        for key in dict1.keys() & dict2.keys():
+            if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+                diff_list.extend(compare_dicts(dict1[key], dict2[key], prefix=f"{prefix}{key}."))
+            elif dict1[key] != dict2[key]:
+                diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+                diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+    
+        return diff_list
+
+    def process_folders(self):
+        if not os.path.isdir(self.folder1_path) or not os.path.isdir(self.folder2_path):
+            print("Invalid folder paths. Please provide valid paths to folders.")
+            return
+
+        folder1_files = os.listdir(self.folder1_path)
+        folder2_files = os.listdir(self.folder2_path)
+
+        for file_name in folder1_files:
+            file1_path = os.path.join(self.folder1_path, file_name)
+
+        for file_name in folder2_files:
+            file2_path = os.path.join(self.folder2_path, file_name)
+
+        # resolve filename datetime part
+        file1_name = os.path.basename(file1_path).split('.')[0]
+        filename2_datetime = os.path.basename(file2_path).split('.')[0]
+    
+        # Load the JSON data from both files
+        with open(file1_path, 'r') as file1:
+            json_data1 = json.load(file1)
+            print(f'{json_data1=}')
+        with open(file2_path, 'r') as file2:
+            json_data2 = json.load(file2)
+
+        # Extract the 'policyid' from each JSON object within the policies list
+        ids1 = [item.get('policyid') for item in json_data1['policies']]
+        ids2 = [item.get('policyid') for item in json_data2['policies']]
+    
+        # Find all unique IDs from both sets
+        all_ids = set(ids1) | set(ids2)
+        ids_only_in_before = set(ids1) - set(ids2)
+        ids_only_in_after = set(ids2) - set(ids1)
+    
+        # Initialize a flag to check if any differences were found
+        differences_found = False
+    
+        # Generate the output file name for this file
+    
+        output_file_name = f"{self.folder_path}/{self.selected_env_name}_{file1_name}_{filename2_datetime}_deepdiff.txt"
+    
+        with open(output_file_name, 'w') as output_file:
+            # Write IDs only in the "before" file
+            if ids_only_in_before:
+                differences_found = True
+                output_file.write("policyids in before and not in after:\n")
+                for common_id in ids_only_in_before:
+                    output_file.write(f"- ID: {common_id}\n")
+    
+            # Write IDs only in the "after" file
+            if ids_only_in_after:
+                differences_found = True
+                output_file.write("policyids in after and not in before:\n")
+                for common_id in ids_only_in_after:
+                    output_file.write(f"+ ID: {common_id}\n")
+    
+            # Iterate through all unique IDs and compare the rest of the differences
+            for common_id in all_ids:
+                # Filter JSON data based on the 'ID' for comparison
+                data1 = [item for item in json_data1['policies'] if item.get('policyid') == common_id]
+                data2 = [item for item in json_data2['policies'] if item.get('policyid') == common_id]
+    
+                # Compare the filtered JSON data using deepdiff
+                if data1 and data2:
+                    diff = self.compare_dicts(data1[0], data2[0])
+    
+                    # Check if there are differences
+                    if diff:
+                        differences_found = True
+    
+                        # Write section header only if there are differences
+                        if common_id not in ids_only_in_before and common_id not in ids_only_in_after:
+                            output_file.write(f"\nDifferences in {file_name} (ID: {common_id}):\n")
+    
+                        # Write the differences to the output file
+                        output_file.write("\n".join(diff))
+                        output_file.write("\n")  # Add a blank line between records
+    
+            # If no differences were found, delete the output file
+            if not differences_found:
+                try:
+                    os.remove(output_file_name)
+                    print(f"No Difference Found for {file1_name}!!!")
+                except Exception as e:
+                    print(e)
+            else:
+                print(f"Differences for {file1_name} have been saved to {output_file_name}.")
+
+    def run(self):
+        self.process_folders()
+
+if __name__ == "__main__":
+    print(os.getcwd())
+    folder_path = input("Enter the path to the folder for diff: ")
+    json_diff = JSONDeepDiff(folder_path)
+    json_diff.run()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policies.py
+
+# 23. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/jsondeepdiff_policy_id.py
+import os
+import json
+
+class JSONDeepDiff:
+    '''
+    Class to deepdiff policies dictionary (of list of dictionaries) based upon "policyid"
+    '''
+    def __init__(self, folder_path, selected_env_name):
+        self.folder_path = folder_path
+        self.folder1_path = os.path.join(folder_path, "b4")
+        self.folder2_path = os.path.join(folder_path, "after")
+        self.script_folder_path = os.path.dirname(os.path.abspath(__file__))
+        self.selected_env_name = selected_env_name
+
+    @staticmethod
+    def compare_dicts(dict1, dict2, prefix=""):
+        """
+        Recursively compares two dictionaries and generates a list of differences.
+    
+        Args:
+            dict1 (dict): The first dictionary to compare.
+            dict2 (dict): The second dictionary to compare.
+            prefix (str): A prefix to add to the difference keys.
+    
+        Returns:
+            list: A list of differences between the dictionaries.
+        """
+        diff_list = []
+    
+        for key in dict1.keys():
+            if key not in dict2:
+                diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+    
+        for key in dict2.keys():
+            if key not in dict1:
+                diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+    
+        for key in dict1.keys() & dict2.keys():
+            if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+                diff_list.extend(compare_dicts(dict1[key], dict2[key], prefix=f"{prefix}{key}."))
+            elif dict1[key] != dict2[key]:
+                diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+                diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+    
+        return diff_list
+
+    def process_folders(self):
+        if not os.path.isdir(self.folder1_path) or not os.path.isdir(self.folder2_path):
+            print("Invalid folder paths. Please provide valid paths to folders.")
+            return
+
+        folder1_files = os.listdir(self.folder1_path)
+        folder2_files = os.listdir(self.folder2_path)
+
+        for file_name in folder1_files:
+            file1_path = os.path.join(self.folder1_path, file_name)
+
+        for file_name in folder2_files:
+            file2_path = os.path.join(self.folder2_path, file_name)
+
+        # resolve filename datetime part
+        file1_name = os.path.basename(file1_path).split('.')[0]
+        filename2_datetime = os.path.basename(file2_path).split('.')[0]
+    
+        # Load the JSON data from both files
+        with open(file1_path, 'r') as file1:
+            json_data1 = json.load(file1)
+            print(f'{json_data1=}')
+        with open(file2_path, 'r') as file2:
+            json_data2 = json.load(file2)
+
+        # Extract the 'ID' from each JSON object within the list
+        ids1 = [item.get('ID') for item in json_data1]
+        ids2 = [item.get('ID') for item in json_data2]
+    
+        # Find all unique IDs from both sets
+        all_ids = set(ids1) | set(ids2)
+        ids_only_in_before = set(ids1) - set(ids2)
+        ids_only_in_after = set(ids2) - set(ids1)
+    
+        # Initialize a flag to check if any differences were found
+        differences_found = False
+    
+        # Generate the output file name for this file
+    
+        output_file_name = f"{self.folder_path}/{self.selected_env_name}_{file1_name}_{filename2_datetime}_deepdiff.txt"
+    
+        with open(output_file_name, 'w') as output_file:
+            # Write IDs only in the "before" file
+            if ids_only_in_before:
+                differences_found = True
+                output_file.write("IDs in before and not in after:\n")
+                for common_id in ids_only_in_before:
+                    output_file.write(f"- ID: {common_id}\n")
+        
+            # Write IDs only in the "after" file
+            if ids_only_in_after:
+                differences_found = True
+                output_file.write("IDs in after and not in before:\n")
+                for common_id in ids_only_in_after:
+                    output_file.write(f"+ ID: {common_id}\n")
+    
+            # Iterate through all unique IDs and compare the rest of the differences
+            for common_id in all_ids:
+                # Filter JSON data based on the 'ID' for comparison
+                data1 = [item for item in json_data1 if item.get('ID') == common_id]
+                data2 = [item for item in json_data2 if item.get('ID') == common_id]
+    
+                # Compare the filtered JSON data using deepdiff
+                if data1 and data2:
+                    diff = self.compare_dicts(data1[0], data2[0])
+    
+                    # Check if there are differences
+                    if diff:
+                        differences_found = True
+    
+                        # Write section header only if there are differences
+                        if common_id not in ids_only_in_before and common_id not in ids_only_in_after:
+                            output_file.write(f"\nDifferences in {file_name} (ID: {common_id}):\n")
+    
+                        # Write the differences to the output file
+                        output_file.write("\n".join(diff))
+                        output_file.write("\n")  # Add a blank line between records
+    
+            # If no differences were found, delete the output file
+            if not differences_found:
+                try:
+                    os.remove(output_file_name)
+                    print(f"No Difference Found for {file1_name}!!!")
+                except Exception as e:
+                    print(e)
+            else:
+                print(f"Differences for {file1_name} have been saved to {output_file_name}.")
+
+    def run(self):
+        self.process_folders()
+
+if __name__ == "__main__":
+    print(os.getcwd())
+    folder_path = input("Enter the path to the folder for diff: ")
+    json_diff = JSONDeepDiff(folder_path)
+    json_diff.run()
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\jsondeepdiff_policy_id.py
+
+# 24. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/json_list_of_dicts_deepdiff_folder_v1.py
+#***********************************************************
+#     Filename: json_list_of_dicts_deepdiff_folder_v1.py
+#     Purpose: Present diff based upon a folder name
+#     Date of creation: 9-10-2023
+#     Author-Joe Zhu
+#***********************************************************
+ 
+import os
+from deepdiff import DeepDiff
+import json
+ 
+'''
+The script will present diff operation between two json files for the same firewall configuration section, e.g. address, policy and etc.
+ 
+Input:
+The base folder:
+C:\Users\s4739693\Downloads\fgt_diff\foldername
+You'd need to create this folder based upon timestamp, such as 2023_09_30_07_57
+ 
+Save your files for diff into subfolders:
+For file1: b4
+For file1: afer
+ 
+Output:
+Diff file will be saved to the script's basedir\output):
+e.g. C:\Users\s4739693\MyPythonProj\explore\IGW\output
+Name of the diff file: e.g. PPE_policy_standard_list_2023_09_23_2023_09_30_deepdiff.txt
+'''
+ 
+def replace_backslash(filepath):
+    """
+    Replaces backslashes with forward slashes in a filepath.
+ 
+    Args:
+        filepath (str): The filepath to be processed.
+ 
+    Returns:
+        str: The filepath with backslashes replaced by forward slashes.
+    """
+    return filepath.replace("\\", "/")
+ 
+def compare_dicts(dict1, dict2, prefix=""):
+    """
+    Recursively compares two dictionaries and generates a list of differences.
+ 
+    Args:
+        dict1 (dict): The first dictionary to compare.
+        dict2 (dict): The second dictionary to compare.
+        prefix (str): A prefix to add to the difference keys.
+ 
+    Returns:
+        list: A list of differences between the dictionaries.
+    """
+    diff_list = []
+ 
+    for key in dict1.keys():
+        if key not in dict2:
+            diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+ 
+    for key in dict2.keys():
+        if key not in dict1:
+            diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+ 
+    for key in dict1.keys() & dict2.keys():
+        if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+            diff_list.extend(compare_dicts(dict1[key], dict2[key], prefix=f"{prefix}{key}."))
+        elif dict1[key] != dict2[key]:
+            diff_list.append(f"- {prefix}{key}: {dict1[key]}")
+            diff_list.append(f"+ {prefix}{key}: {dict2[key]}")
+ 
+    return diff_list
+ 
+# prompt for the folder for diff:
+print(os.getcwd())
+folder_path = replace_backslash(input("Enter the path to the folder for diff: "))
+short_folder1 = "b4"
+short_folder2 = "after"
+folder1_path = folder_path + f"/{short_folder1}"
+folder2_path = folder_path + f"/{short_folder2}"
+ 
+script_file_path = os.path.abspath(__file__)
+script_folder_path = os.path.dirname(script_file_path)
+ 
+# Check if the provided paths are valid folders
+if not os.path.isdir(folder1_path) or not os.path.isdir(folder2_path):
+    print("Invalid folder paths. Please provide valid paths to folders.")
+else:
+    # Get a list of file names in each folder
+    folder1_files = os.listdir(folder1_path)
+    folder2_files = os.listdir(folder2_path)
+ 
+    # Iterate through the files in both folders
+    for file_name in folder1_files:
+        file1_path = os.path.join(folder1_path, file_name)
+       
+    for file_name in folder2_files:
+        file2_path = os.path.join(folder2_path, file_name)
+ 
+    # resolve filename datetime part
+    file1_name = os.path.basename(file1_path).split('.')[0]
+    filename2_datetime = os.path.basename(file2_path).split('list_')[1].split('.')[0]
+ 
+    # Load the JSON data from both files
+    with open(file1_path, 'r') as file1:
+        json_data1 = json.load(file1)
+    with open(file2_path, 'r') as file2:
+        json_data2 = json.load(file2)
+ 
+    # Extract the 'ID' from each JSON object within the list
+    ids1 = [item.get('ID') for item in json_data1]
+    ids2 = [item.get('ID') for item in json_data2]
+ 
+    # Find all unique IDs from both sets
+    all_ids = set(ids1) | set(ids2)
+    ids_only_in_before = set(ids1) - set(ids2)
+    ids_only_in_after = set(ids2) - set(ids1)
+ 
+    # Initialize a flag to check if any differences were found
+    differences_found = False
+ 
+    # Generate the output file name for this file
+ 
+    output_file_name = os.path.join(script_folder_path, f"output/PPE_{file1_name}_{filename2_datetime}_deepdiff.txt")
+ 
+    with open(output_file_name, 'w') as output_file:
+        # Write IDs only in the "before" file
+        if ids_only_in_before:
+            differences_found = True
+            output_file.write("IDs in before and not in after:\n")
+            for common_id in ids_only_in_before:
+                output_file.write(f"- ID: {common_id}\n")
+ 
+        # Write IDs only in the "after" file
+        if ids_only_in_after:
+            differences_found = True
+            output_file.write("IDs in after and not in before:\n")
+            for common_id in ids_only_in_after:
+                output_file.write(f"+ ID: {common_id}\n")
+ 
+        # Iterate through all unique IDs and compare the rest of the differences
+        for common_id in all_ids:
+            # Filter JSON data based on the 'ID' for comparison
+            data1 = [item for item in json_data1 if item.get('ID') == common_id]
+            data2 = [item for item in json_data2 if item.get('ID') == common_id]
+ 
+            # Compare the filtered JSON data using deepdiff
+            if data1 and data2:
+                diff = compare_dicts(data1[0], data2[0])
+ 
+                # Check if there are differences
+                if diff:
+                    differences_found = True
+ 
+                    # Write section header only if there are differences
+                    if common_id not in ids_only_in_before and common_id not in ids_only_in_after:
+                        output_file.write(f"\nDifferences in {file_name} (ID: {common_id}):\n")
+ 
+                    # Write the differences to the output file
+                    output_file.write("\n".join(diff))
+                    output_file.write("\n")  # Add a blank line between records
+ 
+        # If no differences were found, delete the output file
+        if not differences_found:
+            try:
+                os.remove(output_file_name)
+                print(f"No Difference Found for {file1_name}!!!")
+            except Exception as e:
+                print(e)
+        else:
+            print(f"Differences for {file1_name} have been saved to {output_file_name}.")
+ 
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\json_list_of_dicts_deepdiff_folder_v1.py
+
+# 25. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/run_commands_FGT_v1.py
+#*****************************************************
+#     Filename: run_commands_FGT_v1.py
+#     Purpose: Run arbitary FGT CLI and display results
+#     Date of creation: 8-20-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import paramiko
+import time
+import yaml
+import select
+import datetime
+import os
+import sys
+sys.path.append('C:/Users/s4739693/MyPythonProj')
+from utils.menu_tools import get_env_options
+ 
+""""
+If output gets cut off, go to send_command(), make sure use receive_all_data() for output; then in receive_all_data() adjust the buffer size as needed.
+"""
+def save_output_to_file(output):
+    timestamp = datetime.datetime.now().strftime("%Y_%b_%d_%H_%M_%S")
+    filename = f"output\\output_{timestamp}.txt"
+ 
+    with open(filename, "w") as file:
+        file.write(output)
+ 
+def run_commands(fortigate_ip, username, password, commands_string, send_per_command=False):
+    """
+    Connect to the FortiGate device and run commands.
+ 
+    Args:
+        fortigate_ip (str): IP address of the FortiGate device.
+        username (str): Username for SSH login.
+        password (str): Password for SSH login.
+        commands_string (str): String containing the commands to be executed.
+        send_per_command (bool, optional): If True, sends commands one by one.
+                                          If False, sends all commands in a single batch.
+ 
+    Returns:
+        None
+    """
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(fortigate_ip, username=username, password=password)
+        chan = ssh.invoke_shell()
+ 
+        if send_per_command:
+            cmds = get_commands_string(commands_string)
+            for cmd in cmds:
+                send_command(chan, cmd)
+        else:
+            send_command(chan, commands_string)
+ 
+        ssh.close()
+    except paramiko.AuthenticationException:
+        print("Authentication failed. Please check your credentials.")
+    except paramiko.SSHException as ssh_ex:
+        print(f"SSH connection error: {ssh_ex}")
+    except Exception as ex:
+        print(f"Error: {ex}")
+ 
+def receive_all_data(chan):
+    """
+    Receive all data from the SSH channel.
+ 
+    This function continuously reads data from the SSH channel until there is no more data available.
+    It ensures that all data is received, even if the output size is larger than the specified buffer size.
+ 
+    Args:
+        chan (paramiko.Channel): Paramiko channel object for SSH communication.
+ 
+    Returns:
+        str: The received data as a decoded string.
+ 
+    Raises:
+        paramiko.SSHException: If there is an issue with the SSH channel.
+        UnicodeDecodeError: If there is an error decoding the received data.
+ 
+    Example:
+        # Assuming 'chan' is the SSH channel
+        output = receive_all_data(chan)
+    """
+    # buffer adjustable per the need
+    buffer_size = 99999
+    data = b""
+    while True:
+        try:
+            # Use select to check if there is data available to be received
+            readable, _, _ = select.select([chan], [], [], 0.1)
+            if not readable:
+                # No data available, break the loop
+                break
+ 
+            chunk = chan.recv(buffer_size)
+        except paramiko.SSHException as ssh_ex:
+            raise ssh_ex
+        except Exception as ex:
+            raise ex
+ 
+        if not chunk:
+            break
+        data += chunk
+    return data.decode()
+ 
+def send_command(chan, command):
+    """
+    Send a command over the SSH channel and print the output.
+ 
+    Args:
+        chan (paramiko.Channel): Paramiko channel object for SSH communication.
+        command (str): Command to be sent.
+ 
+    Returns:
+        None
+    """
+    chan.send(f"{command}\n")
+    time.sleep(1)
+    # output = chan.recv(99999).decode() # use this line of code a fallback if the next line not work!!!
+    output = receive_all_data(chan)
+ 
+    print(output)
+    save_output_to_file(output)
+ 
+def get_commands_string(commands_string):
+    """
+    Split the commands string into individual commands.
+ 
+    Args:
+        commands_string (str): String containing multiple commands.
+ 
+    Returns:
+        list: List of individual commands.
+    """
+    cmds = commands_string.splitlines()
+    cmds = [cmd.strip() for cmd in cmds]
+    return cmds
+ 
+# Function to load configuration from YAML file
+def load_config(config_file, env):
+    """
+    Load configuration parameters from a YAML file based on the specified env.
+ 
+    Args:
+        config_file (str): Path to the YAML configuration file.
+        env (str): env name to load the configuration for.
+ 
+    Returns:
+        dict: A dictionary containing the configuration parameters for the given env.
+    """
+    with open(config_file, 'r') as file:
+        config = yaml.safe_load(file)
+    return config.get(env, {})
+ 
+def main():
+    # print(os.getcwd())
+    config_file = "explore/IGW/config.yaml"
+ 
+    while True:
+        print("Please choose your environment:")
+       
+        # Get the env options dynamically from the config.yaml
+        env_options = get_env_options(config_file)
+ 
+        for i, env in enumerate(env_options, 1):
+            print(f"{i}. {env.upper()}")
+ 
+        user_input = input('Please enter your choice (e.g. 1 or 2 or 1,2 or q to quit): ')
+        user_input = user_input.replace(" ", "").split(",")
+ 
+        should_exit = False  # Flag to indicate if the user wants to quit the program
+ 
+        for input_item in user_input:
+            if input_item.isdigit():
+                index = int(input_item)
+                if 1 <= index <= len(env_options):
+                    # Get the chosen env
+                    env = env_options[index - 1]
+                    config_data = load_config(config_file, env)
+                    run_commands(**config_data)
+                else:
+                    print("Invalid env choice. Please try again!\n")
+                    break  # Exit the for loop and re-prompt the user
+            elif input_item.lower() == 'q':
+                should_exit = True
+                break  # Exit the for loop and terminate the program gracefully
+            else:
+                print("Invalid input. Please try again!\n")
+                break  # Exit the for loop and re-prompt the user
+ 
+        if should_exit:
+            break  # Exit the while loop and terminate the program
+ 
+if __name__ == '__main__':
+    main()
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1.py
+
+# 26. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/run_commands_FGT_v1_OOP.py
+# run_commands_FGT_v1_OOP.py
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import paramiko
+import logging
+
+# Setup logging for only this script
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler('console msg running fgt commands.txt')
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+
+import os
+import sys
+sys.path.append(os.getcwd())
+
+# Assuming these imports match with your own modules and logic
+from common.timeit import timeit
+from common.generate_cmd_batches_from_file import command_batches  # Replace with your function to get command_batches
+
+class FortiGateCLIAsync:
+    """
+    Asynchronous SSH client for interacting with FortiGate devices.
+    """
+    def __init__(self, host, username, password, timeout=10):
+        """
+        Initialize connection settings and SSH client.
+
+        :param host: IP address of the FortiGate device
+        :param username: SSH username
+        :param password: SSH password
+        :param timeout: Timeout for the SSH connection, in seconds
+        """
+        self.host = host
+        self.username = username
+        self.password = password
+        self.timeout = timeout
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.loop = None  # Initialized to None
+        self.executor = ThreadPoolExecutor()
+        self.is_connected = False  # Initialize to False
+
+    async def connect(self):
+        """
+        Asynchronously establish an SSH connection using ThreadPoolExecutor.
+        """
+        self.loop = asyncio.get_running_loop()
+        try:
+            def wrapper():
+                self.ssh_client.connect(hostname=self.host, username=self.username, password=self.password, timeout=self.timeout)
+                
+            await self.loop.run_in_executor(self.executor, wrapper)
+
+            if self.ssh_client.get_transport() is not None:
+                print("Successfully connected.")
+                self.is_connected = True
+            else:
+                print("Failed to connect.")
+                self.is_connected = False
+        except Exception as e:
+            self.is_connected = False
+            print(f"Failed to connect due to exception: {e}")
+
+    def _exec_command(self, ssh_client, command):
+        """
+        Execute a single command over SSH and return the output.
+
+        :param ssh_client: Active Paramiko SSH client
+        :param command: Command to run
+        :return: Command output as a string
+        """
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        return stdout.read().decode('utf-8')
+
+    async def run_command_batch(self, command_batch):
+        """
+        Asynchronously execute a batch of commands over SSH.
+        """
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        if not self.is_connected:
+            msg = "Not connected. Please connect first."
+            logger.warning(msg)
+            print(msg)
+            return
+        try:
+            output = ''
+            
+            logger.info(f"Sending command: {command_batch}")
+            print(f"Sending command: {command_batch}")
+            
+            command_batch_output = await self.loop.run_in_executor(self.executor, self._exec_command, self.ssh_client, command_batch)
+            output += command_batch_output
+
+            # Log the output
+            logger.info(f"Received output: {command_batch_output.strip()}")
+            print(f"Received output: {command_batch_output.strip()}")
+
+            return output
+        except Exception as e:
+            msg = f"Failed to run command batch due to exception: {e}"
+            logger.error(msg)
+            print(msg)
+
+
+    async def disconnect(self):
+        """
+        Asynchronously close the SSH connection.
+        """
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        await self.loop.run_in_executor(self.executor, self.ssh_client.close)
+
+
+# Example usage
+@timeit
+async def main():
+    """
+    Example asynchronous routine to connect, send command batches, and disconnect.
+    """
+    fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="Iching12#")
+    await fgt_cli.connect()
+    
+    # Assuming commands_string is a list of command batches; each batch is a list of commands for the same policy ID
+    for command_batch in command_batches:
+        output = await fgt_cli.run_command_batch(command_batch)
+        print(output)
+    
+    await fgt_cli.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\run_commands_FGT_v1_OOP.py
+
+# 27. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/fortigate_api_get_objects_json_v1_copy.py
+#*****************************************************
+#     Filename: fortigate_api_get_objects_json_v1.py
+#     Purpose: Generate FGT Object Dictionary
+#     Date of creation: 9-01-2023
+#     Author-Joe Zhu
+#*****************************************************
+ 
+import yaml
+from fortigate_api import FortigateAPI
+from common.utils import Environment_Task_Manager
+# print(os.getcwd())
+""" List of class objects straight from fortigate_api.py
+        self.address = Address(self.rest)
+        self.address_group = AddressGroup(self.rest)
+        self.antivirus = Antivirus(self.rest)
+        self.application = Application(self.rest)
+        self.dhcp_server = DhcpServer(self.rest)
+        self.external_resource = ExternalResource(self.rest)
+        self.interface = Interface(self.rest)
+        self.internet_service = InternetService(self.rest)
+        self.ip_pool = IpPool(self.rest)
+        self.policy = Policy(self.rest)
+        self.schedule = Schedule(self.rest)
+        self.service = Service(self.rest)
+        self.service_category = ServiceCategory(self.rest)
+        self.service_group = ServiceGroup(self.rest)
+        self.snmp_community = SnmpCommunity(self.rest)
+        self.virtual_ip = VirtualIP(self.rest)
+        self.zone = Zone(self.rest)
+        >> I added self.static_routes, see docstring below for details
+        """
+ 
+def load_config(config_file, env):
+    with open(config_file, "r") as f:
+        config = yaml.safe_load(f)
+    # print(config.get(env, {}))
+    return config.get(env, {})
+
+env_file = f"config/config.yaml"
+environ = input('Please enter environment: (Options: lab_fortigate):\n')
+config_data = load_config(config_file, environ)
+fgt_obj_output = f"{fpath}/output/{environ}_{config_data.get('vdom')}_objects_json.txt"
+ 
+# create FortigateAPI object with IP, username, password and vdom
+fgt = FortigateAPI(**config_data)
+ 
+# get to know each of the object type's dictionary structure for the purpose of parsing their useful data
+# Interfaces
+interfaces = fgt.interface.get()
+# print(interfaces)
+# Addresses
+addresses = fgt.address.get()
+# print(addresses)
+ 
+# Address Groups
+addrgroups = fgt.address_group.get()
+# print(addrgroups)
+ 
+# Service
+services = fgt.service.get()
+# print(services)
+ 
+# Service groups
+servicegrps = fgt.service_group.get()
+# print(servicegrps)
+ 
+# Firewall Policy
+policies = fgt.policy.get()
+# print(policies)
+ 
+# IP Pool
+ippools = fgt.ip_pool.get()
+# print(ippools)
+ 
+# VIP
+vips = fgt.virtual_ip.get()
+# print(vips)
+ 
+# static routes
+'''
+need to modify fortigate_api.py
+1. import the class:
+    from fortigate_api.staticroute import StaticRoute
+2. under the class builder add:
+    self.static_route = StaticRoute(self.rest)
+3. paste the code below to staticroute.py
+"""Static Route Object."""
+ 
+from fortigate_api.base import Base
+ 
+class StaticRoute(Base):
+    """Static Route Object."""
+ 
+    def __init__(self, rest):
+        """Static Route Object.
+ 
+        ::
+            :param rest: Fortigate REST API connector
+            :type rest: Fortigate
+        """
+        super().__init__(rest=rest, url_obj="api/v2/cmdb/router/static")
+ 
+'''
+routes = fgt.static_route.get()
+# print(routes)
+zones = fgt.zone.get()
+# print(zones)
+ 
+# Write to the output file
+with open(fgt_obj_output, "w") as output_file:
+    # Write the objects to the file with section notes
+    output_file.write("#! Interfaces:\n" + str(interfaces) + "\n\n")
+    output_file.write("#! Addresses:\n" + str(addresses) + "\n\n")
+    output_file.write("#! Address Groups:\n" + str(addrgroups) + "\n\n")
+    output_file.write("#! Services:\n" + str(services) + "\n\n")
+    output_file.write("#! Service Groups:\n" + str(servicegrps) + "\n\n")
+    output_file.write("#! Policies:\n" + str(policies) + "\n\n")
+    output_file.write("#! IP Pools:\n" + str(ippools) + "\n\n")
+    output_file.write("#! VIPs:\n" + str(vips) + "\n\n")
+    output_file.write("#! Static Routes:\n" + str(routes) + "\n\n")
+    output_file.write("#! Zones:\n" + str(zones) + "\n\n")
+ 
+# Building object Dicts:
+firewall_obj_dict = {}
+firewall_obj_dict['interfaces'] = interfaces
+firewall_obj_dict['addresses'] = addresses
+firewall_obj_dict['addrgroups'] = addrgroups
+firewall_obj_dict['services'] = services
+firewall_obj_dict['servicegrps'] = servicegrps
+firewall_obj_dict['policies'] = policies
+firewall_obj_dict['ippools'] = ippools
+firewall_obj_dict['routes'] = routes
+firewall_obj_dict['zones'] = zones
+ 
+if __name__ == '__main__':
+    print(firewall_obj_dict)
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\fortigate_api_get_objects_json_v1_copy.py
+
+# 28. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/run_commands_FGT_v1_OOP copy.py
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import paramiko
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+import os
+import sys
+sys.path.append(os.getcwd())
+from common.timeit import timeit
+from fortigate.fortigate_tools.generate_commands import commands_string
+
+
+class FortiGateCLIAsync:
+    def __init__(self, host, username, password, timeout=10):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.timeout = timeout
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.loop = None  # Initialized to None
+        self.executor = ThreadPoolExecutor()
+        self.is_connected = False  # Initialize to False
+
+    async def connect(self):
+        self.loop = asyncio.get_running_loop()
+        try:
+            def wrapper():
+                self.ssh_client.connect(hostname=self.host, username=self.username, password=self.password, timeout=self.timeout)
+                
+            await self.loop.run_in_executor(self.executor, wrapper)
+
+            if self.ssh_client.get_transport() is not None:
+                print("Successfully connected.")
+                self.is_connected = True
+            else:
+                print("Failed to connect.")
+                self.is_connected = False
+        except Exception as e:
+            self.is_connected = False
+            print(f"Failed to connect due to exception: {e}")
+
+
+    def _exec_command(self, ssh_client, command):
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        return stdout.read().decode('utf-8')
+
+    async def run_command(self, command):
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        if not self.is_connected:
+            print("Not connected. Please connect first.")
+            return
+        try:
+            output = await self.loop.run_in_executor(self.executor, self._exec_command, self.ssh_client, command)
+            return output
+        except Exception as e:
+            print(f"Failed to run command due to exception: {e}")
+
+
+    async def disconnect(self):
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        await self.loop.run_in_executor(self.executor, self.ssh_client.close)
+
+# Example usage
+@timeit
+async def main():
+    fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="x")
+    await fgt_cli.connect()
+    output = await fgt_cli.run_command(f"{commands_string}")
+    print(output)
+    await fgt_cli.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP copy.py
+
+# 29. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/archive/run_commands_FGT_v1_OOP.py
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import paramiko
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+import os
+import sys
+sys.path.append(os.getcwd())
+
+# Assuming these imports match with your own modules and logic
+from common.timeit import timeit
+from common.generate_cmd_batches_from_file import command_batches  # Assuming commands_string is a list of command batches
+
+
+class FortiGateCLIAsync:
+    """
+    Asynchronous SSH client for interacting with FortiGate devices.
+    """
+    def __init__(self, host, username, password, timeout=10):
+        """
+        Initialize connection settings and SSH client.
+
+        :param host: IP address of the FortiGate device
+        :param username: SSH username
+        :param password: SSH password
+        :param timeout: Timeout for the SSH connection, in seconds
+        """
+        self.host = host
+        self.username = username
+        self.password = password
+        self.timeout = timeout
+        self.ssh_client = paramiko.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.loop = None  # Initialized to None
+        self.executor = ThreadPoolExecutor()
+        self.is_connected = False  # Initialize to False
+
+    async def connect(self):
+        """
+        Asynchronously establish an SSH connection using ThreadPoolExecutor.
+        """
+        self.loop = asyncio.get_running_loop()
+        try:
+            def wrapper():
+                self.ssh_client.connect(hostname=self.host, username=self.username, password=self.password, timeout=self.timeout)
+                
+            await self.loop.run_in_executor(self.executor, wrapper)
+
+            if self.ssh_client.get_transport() is not None:
+                print("Successfully connected.")
+                self.is_connected = True
+            else:
+                print("Failed to connect.")
+                self.is_connected = False
+        except Exception as e:
+            self.is_connected = False
+            print(f"Failed to connect due to exception: {e}")
+
+    def _exec_command(self, ssh_client, command):
+        """
+        Execute a single command over SSH and return the output.
+
+        :param ssh_client: Active Paramiko SSH client
+        :param command: Command to run
+        :return: Command output as a string
+        """
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        return stdout.read().decode('utf-8')
+
+    async def run_command_batch(self, command_batch):
+        """
+        Asynchronously execute a batch of commands over SSH.
+
+        :param command_batch: List of commands to run sequentially
+        :return: Concatenated output from all commands
+        """
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        if not self.is_connected:
+            print("Not connected. Please connect first.")
+            return
+        try:
+            output = ''
+            for cmd in command_batch:
+                output += await self.loop.run_in_executor(self.executor, self._exec_command, self.ssh_client, cmd)
+            return output
+        except Exception as e:
+            print(f"Failed to run command batch due to exception: {e}")
+
+    async def disconnect(self):
+        """
+        Asynchronously close the SSH connection.
+        """
+        if self.loop is None:
+            self.loop = asyncio.get_running_loop()
+        await self.loop.run_in_executor(self.executor, self.ssh_client.close)
+
+
+# Example usage
+@timeit
+async def main():
+    """
+    Example asynchronous routine to connect, send command batches, and disconnect.
+    """
+    fgt_cli = FortiGateCLIAsync(host="192.168.3.1", username="joe", password="x")
+    await fgt_cli.connect()
+    
+    # Assuming commands_string is a list of command batches; each batch is a list of commands for the same policy ID
+    for command_batch in command_batches:
+        output = await fgt_cli.run_command_batch(command_batch)
+        print(output)
+    
+    await fgt_cli.disconnect()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive\run_commands_FGT_v1_OOP.py
+
+# 30. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/fortigate_tools/ggrandchild/import error_append project root dir to sys_path.py
+'''
+module import error fixed by appending current module's os.getcwd() to sys.path, which is the top level project folder (absolute path)
+'''
+import os
+print(f'{os.getcwd()=}')
+
+import sys
+sys.path.append(os.getcwd()) # all project file has the top level directory as its cwd??, once it's appended, I can access any subdir under it!
+print(f"{sys.path=}")
+from common.utils import Environment_Task_Manager
+
+with open('config/tasks.yml', 'r') as f: # this relative path somehow doesn't rely on sys.path.append()??!
+    yml = f.read()
+    print(yml)
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\ggrandchild\import error_append project root dir to sys_path.py
+
+# 31. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/feature tests.py
+"""
+explore possiblities of fortigate_api by https://github.com/vladimirs-git/fortigate-api/tree/main
+"""
+
+from fortigate_api import FortigateAPI
+
+fgt = FortigateAPI(host="192.168.3.1", username="joe", password="Iching12#", timeout = 30) #default ignored:vdom='root')
+
+
+# Get address by name
+addresses_by_name = fgt.address.get(uid="10.0.0.0/8")
+print(addresses_by_name)
+
+# Create address
+data = {"name": "ADDRESS",
+        "obj-type": "ip",
+        "subnet": "127.0.0.100 255.255.255.252",
+        "type": "ipmask"}
+# response = fgt.address.create(data)
+# print(f"{response=}")
+# # # Get all addresses
+# # addresses_all = fgt.address.get()
+
+# # Get address by name
+# addresses_by_name = fgt.address.get(uid="ADDRESS")
+# print(f"{addresses_by_name=}")
+
+# Get address by operator contains \"=@\"
+# addresses_contains = fgt.address.get(filter="subnet=@10.0")
+# print(f"{addresses_contains=}")
+
+# # Get address by operator contains \"=@\"
+# addresses_contains = fgt.address.get(filter="name=@net")
+# print(f"{addresses_contains=}")
+
+# # Get address by operator equals \"==\"
+# addresses_contains = fgt.address.get(filter="name==net_10")
+# print(f"{addresses_contains=}")
+
+from collections import Counter
+
+counter = Counter(('a', 'b', 'c', 'a', 'b', 'b')) # list/set does make sense for counting per element
+# counter = Counter({'key_1': 38, 'key_2': 91, 'key_3': 53, 'key_4': 14, 'key_5': 31}) # pass dict doesn't make sense
+# Output: Counter({'b': 3, 'a': 2, 'c': 1})
+print(f"{counter['b']=}")
+# print(f"{counter['key_5']=}") # pass dict doesn't make sense
+from collections import namedtuple
+# namedtuple vs class based:
+# Class-based approach
+class PersonClass:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+# namedtuple-based approach
+PersonData = namedtuple('PersonData', ['name', 'age'])
+p = PersonData(name="Joe", age=58)
+print(p.name, p.age)
+# Both serve similar purposes but namedtuple is more concise
+
+'''
+    Username ("john doe"): The space between "john" and "doe" gets encoded as %20, resulting in 'john%20doe'.
+
+    Email ("john@doe.com"): The "@" symbol gets encoded as %40, giving us 'john%40doe.com'.
+
+    Special Characters ("?&=#"): Each special character is encoded, resulting in %3F%26%3D%23.'''
+from fortigate_api import helpers as h
+
+nameinurl = h.quote("john doe")
+print(f"{nameinurl=}")
+emailinurl = h.quote("john@doe.com")
+print(f"{emailinurl=}")
+
+
+from collections import ChainMap
+# useful for getting the value of a key in the order you specify for the chaining of dicts
+dict1 = {'a': 1, 'b': 2}
+dict2 = {'b': 3, 'c': 4}
+chainmap = ChainMap(dict1, dict2)
+print(f"{chainmap['b']=}")
+
+# print os environment variables:
+import os, sys
+import json
+print(f'{os.environ["COMPUTERNAME"]=}')
+
+osenv = {'ALLUSERSPROFILE': 'C:\\ProgramData', 'APPDATA': 'C:\\Users\\jacki\\AppData\\Roaming', 'APPDIR_PATH': 'C:\\Users\\jacki\\AppData\\Roaming\\Free Snipping Tool\\', 'ARYA': 'C:\\Users\\jacki\\Downloads\\Homelab\\Python\\arya\\arya\\', 'ASL.LOG': 'Destination=file', 'CHOCOLATEYINSTALL': 'C:\\ProgramData\\chocolatey', 'CHOCOLATEYLASTPATHUPDATE': '133415561497464466', 'CHROME_CRASHPAD_PIPE_NAME': '\\\\.\\pipe\\crashpad_28820_RZENNTMPZQBCWBAI', 'COMMONPROGRAMFILES': 'C:\\Program Files\\Common Files', 'COMMONPROGRAMFILES(X86)': 'C:\\Program Files (x86)\\Common Files', 'COMMONPROGRAMW6432': 'C:\\Program Files\\Common Files', 'COMPUTERNAME': 'JACK-LABPC', 'COMSPEC': 'C:\\Windows\\system32\\cmd.exe', 'DRIVERDATA': 'C:\\Windows\\System32\\Drivers\\DriverData', 'EFC_3900': '1', 'HOMEDRIVE': 'C:', 'HOMEPATH': '\\Users\\jacki', 'LOCALAPPDATA': 'C:\\Users\\jacki\\AppData\\Local', 'LOGONSERVER': '\\\\JACK-LABPC', 'NUMBER_OF_PROCESSORS': '16', 'ONEDRIVE': 'C:\\Users\\jacki\\OneDrive', 'ONLINESERVICES': 'Online Services', 'ORIGINAL_XDG_CURRENT_DESKTOP': 'undefined', 'OS': 'Windows_NT', 'PATH': 'C:\\Python312\\Scripts\\;C:\\Python312\\;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\PuTTY\\;C:\\Program Files\\dotnet\\;C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\;C:\\Program Files (x86)\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\130\\Tools\\Binn\\;C:\\Program Files\\Microsoft SQL Server\\130\\DTS\\Binn\\;C:\\Program Files (x86)\\Common Files\\Acronis\\SnapAPI\\;C:\\Program Files (x86)\\Common Files\\Acronis\\VirtualFile\\;C:\\Program Files (x86)\\Common Files\\Acronis\\VirtualFile64\\;C:\\Program Files (x86)\\Common Files\\Acronis\\FileProtector\\;C:\\Program Files (x86)\\Common Files\\Acronis\\FileProtector64\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\VanDyke Software\\SecureCRT\\;C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.37.32822\\bin\\Hostx64\\x64;C:\\Program Files\\nodejs\\;C:\\ProgramData\\chocolatey\\bin;C:\\Users\\jacki\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\;C:\\Users\\jacki\\AppData\\Local\\Programs\\Python\\Python311\\;C:\\Users\\jacki\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\JetBrains\\PyCharm Community Edition 2022.2.1\\bin;C:\\Users\\jacki\\AppData\\Local\\atom\\bin;C:\\Users\\jacki\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\jacki\\AppData\\Local\\GitHubDesktop\\bin;C:\\Users\\jacki\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\Sennheiser\\HeadSetup Pro\\Plugins;C:\\Program Files (x86)\\Sennheiser\\HeadSetup Pro\\Open Source;C:\\Program Files (x86)\\Sennheiser\\HeadSetup Pro\\External;C:\\Users\\jacki\\Downloads\\Homelab\\Python\\arya\\arya\\;C:\\Users\\jacki\\AppData\\Roaming\\npm', 'PATHEXT': '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW;.CPL', 'PLATFORMCODE': 'M8', 'PROCESSOR_ARCHITECTURE': 'AMD64', 'PROCESSOR_IDENTIFIER': 'Intel64 Family 6 Model 154 Stepping 3, GenuineIntel', 'PROCESSOR_LEVEL': '6', 'PROCESSOR_REVISION': '9a03', 'PROGF81DEF27053': '1', 'PROGRAMDATA': 'C:\\ProgramData', 'PROGRAMFILES': 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)', 'PROGRAMW6432': 'C:\\Program Files', 'PSMODULEPATH': 'C:\\Users\\jacki\\OneDrive\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules;C:\\Program Files (x86)\\Microsoft SQL Server\\130\\Tools\\PowerShell\\Modules\\', 'PUBLIC': 'C:\\Users\\Public', 'PYCHARM COMMUNITY EDITION': 'C:\\Program Files\\JetBrains\\PyCharm Community Edition 2022.2.1\\bin;', 'REGIONCODE': 'NA', 'SESSIONNAME': 'Console', 'SYSTEMDRIVE': 'C:', 'SYSTEMROOT': 'C:\\Windows', 'TEMP': 'C:\\Users\\jacki\\AppData\\Local\\Temp', 'TMP': 'C:\\Users\\jacki\\AppData\\Local\\Temp', 'USERDOMAIN': 'JACK-LABPC', 'USERDOMAIN_ROAMINGPROFILE': 'JACK-LABPC', 'USERNAME': 'jacki', 'USERPROFILE': 'C:\\Users\\jacki', 'WINDIR': 'C:\\Windows', 'ZES_ENABLE_SYSMAN': '1', '__PSLOCKDOWNPOLICY': '0', 'TERM_PROGRAM': 'vscode', 'TERM_PROGRAM_VERSION': '1.83.1', 'LANG': 'en_US.UTF-8', 'COLORTERM': 'truecolor', 'GIT_ASKPASS': 'c:\\Users\\jacki\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass.sh', 'VSCODE_GIT_ASKPASS_NODE': 'C:\\Users\\jacki\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe', 'VSCODE_GIT_ASKPASS_EXTRA_ARGS': '--ms-enable-electron-run-as-node', 'VSCODE_GIT_ASKPASS_MAIN': 'c:\\Users\\jacki\\AppData\\Local\\Programs\\Microsoft VS Code\\resources\\app\\extensions\\git\\dist\\askpass-main.js', 'VSCODE_GIT_IPC_HANDLE': '\\\\.\\pipe\\vscode-git-680b67b555-sock', 'VSCODE_INJECTION': '1'}
+# print(f"{type(osenv)=}")
+osenv_json = json.dumps(osenv, indent=4)
+# print(osenv_json)
+# tempf = f"{os.environ['TEMP']}/OS_Environment_Variables.txt"
+tempf = f"{os.getcwd()}/fortigate/output/OS_Environment_Variables.txt"
+print(f"{os.getcwd()=}")
+# sys.path.append(os.getcwd())
+with open(tempf, 'w') as jfile:
+    json.dump(osenv, jfile, indent=4)
+
+urls = r"""Object  GUI and REST API URL to the object (FortiOS v6.4)
+Address
+https://192.168.3.1/ng/firewall/address
+
+https://192.168.3.1/api/v2/cmdb/firewall/address/
+
+AddressGroup
+https://192.168.3.1/ng/firewall/address
+
+https://192.168.3.1/api/v2/cmdb/firewall/addrgrp/
+
+Antivirus
+https://192.168.3.1/ng/utm/antivirus/profile
+
+https://192.168.3.1/api/v2/cmdb/antivirus/profile/
+
+Application
+https://192.168.3.1/ng/utm/appctrl/sensor
+
+https://192.168.3.1/api/v2/cmdb/application/list/
+
+DhcpServer
+https://192.168.3.1/ng/interface/edit/{name}
+
+https://192.168.3.1/api/v2/cmdb/system.dhcp/server/
+
+ExternalResource
+https://192.168.3.1/ng/external-connector
+
+https://192.168.3.1/api/v2/cmdb/system/external-resource/
+
+Interface
+https://192.168.3.1/ng/interface
+
+https://192.168.3.1/api/v2/cmdb/system/interface/
+
+InternetService
+https://192.168.3.1/ng/firewall/internet_service
+
+https://192.168.3.1/api/v2/cmdb/firewall/internet-service/
+
+IpPool
+https://192.168.3.1/ng/firewall/ip-pool
+
+https://192.168.3.1/api/v2/cmdb/firewall/ippool/
+
+Policy
+https://192.168.3.1/ng/firewall/policy/policy/standard
+
+https://192.168.3.1/api/v2/cmdb/firewall/policy/
+
+Schedule
+https://192.168.3.1/ng/firewall/schedule
+
+https://192.168.3.1/api/v2/cmdb/firewall.schedule/onetime/
+
+Service
+https://192.168.3.1/ng/firewall/service
+
+https://192.168.3.1/api/v2/cmdb/firewall.service/custom/
+
+ServiceCategory
+https://192.168.3.1/ng/firewall/service
+
+https://192.168.3.1/api/v2/cmdb/firewall.service/category/
+
+ServiceGroup
+https://192.168.3.1/ng/firewall/service
+
+https://192.168.3.1/api/v2/cmdb/firewall.service/group/
+
+SnmpCommunity
+https://192.168.3.1/ng/system/snmp
+
+https://192.168.3.1/api/v2/cmdb/system.snmp/community/
+
+VirtualIp
+https://192.168.3.1/ng/firewall/virtual-ip
+
+https://192.168.3.1/api/v2/cmdb/firewall/vip/
+
+Zone
+https://192.168.3.1/ng/interface
+
+https://192.168.3.1/api/v2/cmdb/system/zone/"""
+
+# new_urls = urls.replace("hostname", "192.168.3.1")
+
+# print(new_urls)
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\feature tests.py
+
+# 32. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/find_n_replace_in_list.py
+# Sample list
+my_list = [1, 2, 3, 4, 5]
+
+# Tuples with (item_to_find, item_to_replace)
+replace_tuples = [(2, 20), (4, 40), (5, 50)]
+
+# Loop through the list
+for i, item in enumerate(my_list):
+    for item_to_find, item_to_replace in replace_tuples:
+        if item == item_to_find:
+            my_list[i] = item_to_replace
+
+print(my_list)
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\find_n_replace_in_list.py
+
+# 33. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/fortigate/tests/__init__.py
+import sys
+import os
+sys.path.append(os.getcwd())
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests\__init__.py
+
+# 34. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/OCR/find_python_code_photo.py
+        
+import os
+import cv2
+import pytesseract
+from PIL import Image
+
+# Path to the tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# Directory containing images
+img_dir = r'C:\Users\jacki\Personal\Photos\photo_joe'
+# Python-specific keywords you expect to find in images
+keywords = ['import', 'def', 'class', 'for', 'while', 'if']
+
+def is_taken_by_iphone(image_path):
+    try:
+        with Image.open(image_path) as image:
+            exif_data = image._getexif()
+            if exif_data:
+                # 271 is the tag for 'Make' in EXIF data
+                make = exif_data.get(271, '').upper()
+                return 'IPHONE' in make
+    except IOError:
+        print(f"IOError: Unable to open or identify image file '{image_path}'.")
+    except Exception as e:
+        print(f"Error processing EXIF data for image: {image_path}, Error: {e}")
+    return False
+
+
+def contains_python_code(image_path):
+    # if not is_taken_by_iphone(image_path):
+    #     return False
+
+    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    if image is None:
+        print(f"Error loading image: {image_path}")
+        return False
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    text = pytesseract.image_to_string(gray)
+
+    # Check for Python-specific keywords
+    for keyword in keywords:
+        if keyword in text:
+            print(f"Possible Python code found in image: {image_path}")
+            with open(output_file_path, 'a') as output_file:
+                output_file.write(image_path + '\n')
+            return True
+    return False
+
+# Initialize the file for writing
+output_file_path = r'C:\Users\jacki\Downloads\Homelab\recovered_code_Eric\possible python code photo names.txt'
+with open(output_file_path, 'w') as f:  # Clear the file contents
+    pass
+
+for root, dirs, files in os.walk(img_dir):
+    for file in files:
+        if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image_path = os.path.join(root, file)
+            contains_python_code(image_path)
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR\find_python_code_photo.py
+
+# 35. File: C:/Users/jacki/Downloads/Homelab/DC_Automation/OCR/ocr by chat.py
+
+
+for node in top_system_data['imdata']:
+	dn = node['topSystem']['attributes']['dn']
+	name = node['topSystem']['attributes']['name']
+	oobMgmtAddr = node['topSystem']['attributes']['oobMgmtAddr']
+	oobMgmtAddrMask = node['topSystem']['attributes']['oobMgmtAddrMask']
+	role = node['topSystem']['attributes']['role']
+
+	node_data.append({
+	"dn": dn,
+	"name": name,
+	"oobMgmtAddr": oobMgmtAddr,
+	"oobMgmtAddrMask": oobMgmtAddrMask,
+	"role": role
+	})
+
+	with open('apic_top_system_output.json', 'w') as f:
+	json.dump(node_data, f, indent=4)
+	print("Data successfully written to apic_top_system_output.json")
+
+	log_out = APIC_URL + "/api/aaaLogout.json"
+	session.post(log_out, json={"aaaUser": {"attributes": {"name": "admin", "pwd": "cisco"}}}, verify=False)
+
+# End of C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR\ocr by chat.py
+
+# Total number of Python files concatenated: 35
+
+# Directory Structure:
+C:\Users\jacki\Downloads\Homelab\DC_Automation/
+    fmc_main.py
+    fortigate_main.py
+    C:\Users\jacki\Downloads\Homelab\DC_Automation\common/
+        environment_manager.py
+        generate_cmd_batches_from_file.py
+        generate_requirements.py
+        get_all_pyfiles.py
+        play_back_pyfiles_to_project_folder.py
+        task_manager.py
+        timeit.py
+        utils.py
+        C:\Users\jacki\Downloads\Homelab\DC_Automation\fmc\fmc_tools/
+            acp.py
+            fmcobjectmanager.py
+            fwobjectsjsonparser.py
+            old fmc obj.py
+        C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\archive/
+            dedup_fgt_policies_ v11.py
+            fortigatepolicymanager.py
+            policy_manager.py
+            run_commands_FGT_v1.py
+        C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools/
+            fortigateobjectmanager.py
+            fortigate_policy_manager.py
+            fortigate_policy_manager_interface.py
+            jsondeepdiff_policies.py
+            jsondeepdiff_policy_id.py
+            json_list_of_dicts_deepdiff_folder_v1.py
+            run_commands_FGT_v1.py
+            run_commands_FGT_v1_OOP.py
+            C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\archive/
+                fortigate_api_get_objects_json_v1_copy.py
+                run_commands_FGT_v1_OOP copy.py
+                run_commands_FGT_v1_OOP.py
+            C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\fortigate_tools\ggrandchild/
+                import error_append project root dir to sys_path.py
+        C:\Users\jacki\Downloads\Homelab\DC_Automation\fortigate\tests/
+            feature tests.py
+            find_n_replace_in_list.py
+            __init__.py
+    C:\Users\jacki\Downloads\Homelab\DC_Automation\OCR/
+        find_python_code_photo.py
+        ocr by chat.py
