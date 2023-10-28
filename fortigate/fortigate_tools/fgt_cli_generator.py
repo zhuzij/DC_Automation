@@ -89,34 +89,19 @@ def generate_sniffer_commands(reverse_var):
     # sniffer_command = "Diagnose Sniffer-Verify Flow\n"
     sniffer_filter = []
 
+    
+    if source_ip:
+        sniffer_filter.append(f"host {source_ip}")
+    if dest_ip:
+        sniffer_filter.append(f"host {dest_ip}")
     if is_ping_checked:
-        if source_ip:
-            sniffer_filter.append(f"host {source_ip}")
-        if dest_ip:
-            sniffer_filter.append(f"host {dest_ip}")
         sniffer_filter.append("icmp")
     else:
-        if source_ip:
-            sniffer_filter.append(f"src host {source_ip}")
-        if dest_ip:
-            sniffer_filter.append(f"dst host {dest_ip}")
-        # if source_port:
-        #     if tcp_checked and udp_checked:
-        #         sniffer_filter.append(f"port {source_port}")
-        #     else:
-        #         if tcp_checked:
-        #             sniffer_filter.append(f"tcp port {source_port}")
-        #         if udp_checked:
-        #             sniffer_filter.append(f"udp port {source_port}")
- 
         if dest_port:
-            if tcp_checked and udp_checked:
-                sniffer_filter.append(f"port {dest_port}")
-            else:
-                if tcp_checked:
-                    sniffer_filter.append(f"tcp port {dest_port}")
-                if udp_checked:
-                    sniffer_filter.append(f"udp port {dest_port}")
+            if tcp_checked:
+                sniffer_filter.append(f"tcp port {dest_port}")
+            if udp_checked:
+                sniffer_filter.append(f"udp port {dest_port}")
  
     if sniffer_filter:
         sniffer_command += f"diagnose sniffer packet any '{' and '.join(sniffer_filter)}' 4\n"
