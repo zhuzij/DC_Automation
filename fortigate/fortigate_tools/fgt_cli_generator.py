@@ -53,8 +53,9 @@ def generate_debug_flow_commands(reverse_var):
         filters.append(f"daddr {dest_ip}: destination address")
     # if source_port:
     #     filters.append(f"sport {source_port}: source port")
-    if dest_port:
-        filters.append(f"dport {dest_port}: destination port")
+    if not is_ping_checked:
+        if dest_port:
+            filters.append(f"dport {dest_port}: destination port")
  
     # Add filters to the command if there are any
     for filter_str in filters:
@@ -87,15 +88,18 @@ def generate_sniffer_commands(reverse_var):
     sniffer_command = ''
     # sniffer_command = "Diagnose Sniffer-Verify Flow\n"
     sniffer_filter = []
- 
-    if source_ip:
-        sniffer_filter.append(f"src host {source_ip}")
-    if dest_ip:
-        sniffer_filter.append(f"dst host {dest_ip}")
- 
+
     if is_ping_checked:
+        if source_ip:
+            sniffer_filter.append(f"host {source_ip}")
+        if dest_ip:
+            sniffer_filter.append(f"host {dest_ip}")
         sniffer_filter.append("icmp")
     else:
+        if source_ip:
+            sniffer_filter.append(f"src host {source_ip}")
+        if dest_ip:
+            sniffer_filter.append(f"dst host {dest_ip}")
         # if source_port:
         #     if tcp_checked and udp_checked:
         #         sniffer_filter.append(f"port {source_port}")
