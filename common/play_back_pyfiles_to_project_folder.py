@@ -31,19 +31,22 @@ def set_project_root_directory(inputf, outf, project_folder_name, alternate_proj
     - bool: True if the file path is valid, otherwise False
     """
     file_path_valid = False
-    with open(inputf, 'r') as f:
+    with open(inputf, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     # Replace original project folder name with the alternate one
     for idx, line in enumerate(lines):
         if 'File: C' in line or '# End of' in line:
+            # print(f'filename in concatenated python file: {line=}')
             line = line.replace('\\', '/') 
-            if project_folder_name in line:
+            # print(f'transformed filename in concatenated python file: {line=}')
+            if project_folder_name.replace('\\', '/') in line:
                 lines[idx] = line.replace(project_folder_name, alternate_project_folder_name)
                 file_path_valid = True
+                print(f'{file_path_valid=}')
 
     # Write the updated lines to the output file
-    with open(outf, 'w') as f:
+    with open(outf, 'w', encoding='utf-8') as f:
         f.write(''.join(lines))
         
     return file_path_valid
@@ -56,7 +59,7 @@ async def update_python_files(input_file_path):
     Parameters:
     - input_file_path (str): The path to the input file containing the Python code
     """
-    async with aiofiles.open(input_file_path, 'r') as infile:
+    async with aiofiles.open(input_file_path, 'r', encoding='utf-8') as infile:
         lines = await infile.readlines()
 
     filepath = ''
@@ -107,10 +110,16 @@ async def update_python_files(input_file_path):
 
 if __name__ == '__main__':
     # Restore py files to an alternate folder
-    project_folder_name = '/DC_Automation/'
-    alternate_project_folder_name = '/DC_Automation2/'
-    inputf = 'C:/Users/jacki/Downloads/Homelab/DC_Automation/output/all_bns_scripts_20231016_004244.txt'
+    inputf = 'C:/Users/jacki/Downloads/all_bns_scripts_20231026_133744_from_BNS.txt'
     outf = f'{inputf.split(".")[0]}_for_restore_test.txt'
+    if 'BNS' in inputf:
+        project_folder_name = '/Users/s4739693/Documents/DC_Automation'
+        print(f'{project_folder_name=}')
+        alternate_project_folder_name = '/Users/jacki/Downloads/DC_Automation_BNS'
+        print(f'{alternate_project_folder_name=}')
+    else:
+        project_folder_name = '/DC_Automation/'
+        alternate_project_folder_name = '/DC_Automation2/'
     
     file_path_valid = set_project_root_directory(inputf, outf, project_folder_name, alternate_project_folder_name)
     if file_path_valid:
